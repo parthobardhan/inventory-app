@@ -1,6 +1,60 @@
 const { HfInference } = require('@huggingface/inference');
 const axios = require('axios');
 
+const HF_TIMEOUT_MS = parseInt(process.env.HF_TIMEOUT_MS || '20000', 10);
+const HF_MAX_RETRIES = parseInt(process.env.HF_MAX_RETRIES || '2', 10);
+const HF_BACKOFF_MS = parseInt(process.env.HF_BACKOFF_MS || '500', 10);
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetriableHFError(err) {
+  const status = err && (err.status || err.statusCode);
+  const msg = (err && (err.message || err.toString())) || '';
+  if (status && [429, 500, 502, 503, 504].includes(status)) return true;
+  if (/timeout|ENOTFOUND|ECONNRESET|EAI_AGAIN|network|fetch failed/i.test(msg)) return true;
+  return false;
+}
+
+async function withRetries(fn, maxRetries = HF_MAX_RETRIES, backoffMs = HF_BACKOFF_MS) {
+  let lastErr;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isRetriableHFError(err) || attempt === maxRetries) break;
+      await sleep(backoffMs * Math.pow(2, attempt));
+    }
+  }
+  throw lastErr;
+}
+
+async function hfRestImageToText(modelId, imageUrl, token) {
+  const url = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
+  const res = await axios.post(
+    url,
+    { inputs: imageUrl },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: HF_TIMEOUT_MS,
+      validateStatus: () => true
+    }
+  );
+  const status = res.status;
+  const data = res.data;
+  if (status < 200 || status >= 300) {
+    const err = new Error(typeof data === 'string' ? data : JSON.stringify(data));
+    err.status = status;
+    throw err;
+  }
+  return data;
+}
+
+const { HfInference } = require('@huggingface/inference');
+const axios = require('axios');
+
 // Initialize Hugging Face Inference API
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
@@ -40,32 +94,46 @@ async function generateProductDescription(imageUrl, productType = null) {
     console.log('📝 Step 1: Running InstructBLIP image captioning...');
 
     let basicCaption;
+    let usedModel = 'InstructBLIP';
     try {
-      // Try InstructBLIP first with specific instructions for textile products
       basicCaption = await generateInstructBLIPCaption(imageBuffer, productType);
       console.log(`✅ InstructBLIP completed - Caption: "${basicCaption}"`);
-
     } catch (error) {
       console.log(`⚠️  InstructBLIP failed (${error.message}), trying BLIP fallback...`);
-
       try {
-        // Fallback to regular BLIP
-        const captionPromise = hf.imageToText({
-          data: imageBuffer,
-          model: FALLBACK_CAPTIONING_MODEL
-        });
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('BLIP API timeout')), 30000)
+        const captionResult = await withRetries(
+          () => hf.imageToText({
+            data: imageBuffer,
+            model: FALLBACK_CAPTIONING_MODEL
+          }),
+          HF_MAX_RETRIES,
+          HF_BACKOFF_MS
         );
-
-        const captionResult = await Promise.race([captionPromise, timeoutPromise]);
         basicCaption = captionResult.generated_text;
+        usedModel = 'BLIP';
         console.log(`✅ BLIP fallback completed - Caption: "${basicCaption}"`);
-
       } catch (fallbackError) {
-        console.log(`❌ BLIP fallback also failed (${fallbackError.message})`);
-        throw new Error(`All LLM caption generation methods failed: ${fallbackError.message}`);
+        console.log(`⚠️  BLIP fallback via SDK failed (${fallbackError.message}), trying REST fallback...`);
+        const token = process.env.HUGGINGFACE_API_KEY;
+        try {
+          const restResult = await withRetries(
+            () => hfRestImageToText(FALLBACK_CAPTIONING_MODEL, imageUrl, token),
+            HF_MAX_RETRIES,
+            HF_BACKOFF_MS
+          );
+          const restText = Array.isArray(restResult)
+            ? (restResult[0]?.generated_text || restResult[0]?.summary_text || restResult[0]?.text)
+            : (restResult?.generated_text || restResult?.summary_text || restResult?.text);
+          if (!restText) {
+            throw new Error('HF REST response did not include generated_text');
+          }
+          basicCaption = restText;
+          usedModel = 'BLIP';
+          console.log(`✅ BLIP REST fallback completed - Caption: "${basicCaption}"`);
+        } catch (restError) {
+          console.log(`❌ BLIP REST fallback also failed (${restError.message})`);
+          throw new Error(`All LLM caption generation methods failed: ${restError.message}`);
+        }
       }
     }
 
@@ -82,8 +150,8 @@ async function generateProductDescription(imageUrl, productType = null) {
     const finalResult = {
       title: title,
       description: enhancedDescription,
-      confidence: 0.8, // High confidence for InstructBLIP with intelligent fallbacks
-      model: 'InstructBLIP',
+      confidence: 0.8,
+      model: usedModel,
       generatedAt: new Date(),
       rawCaption: basicCaption
     };
@@ -142,10 +210,14 @@ async function generateInstructBLIPCaption(imageBuffer, productType) {
 
     // Try to use regular BLIP first (more reliable than InstructBLIP)
     console.log('🔄 Trying BLIP image captioning...');
-    const captionResult = await hf.imageToText({
-      data: imageBuffer,
-      model: FALLBACK_CAPTIONING_MODEL
-    });
+    const captionResult = await withRetries(
+      () => hf.imageToText({
+        data: imageBuffer,
+        model: FALLBACK_CAPTIONING_MODEL
+      }),
+      HF_MAX_RETRIES,
+      HF_BACKOFF_MS
+    );
 
     let caption = captionResult.generated_text;
 
