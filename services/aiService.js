@@ -52,9 +52,6 @@ async function hfRestImageToText(modelId, imageUrl, token) {
   return data;
 }
 
-const { HfInference } = require('@huggingface/inference');
-const axios = require('axios');
-
 // Initialize Hugging Face Inference API
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
