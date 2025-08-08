@@ -77,6 +77,7 @@ router.post('/upload/:productId', upload.single('image'), async (req, res) => {
         }
       } catch (error) {
         console.error('AI generation failed:', error);
+        imageData.aiError = (error && error.message) ? error.message : 'AI generation failed';
         // Continue without AI data - user can retry later
       }
     }
@@ -97,7 +98,8 @@ router.post('/upload/:productId', upload.single('image'), async (req, res) => {
       data: {
         imageId: imageId,
         url: req.file.location,
-        aiGenerated: imageData.aiGenerated || null
+        aiGenerated: imageData.aiGenerated || null,
+        aiError: imageData.aiError || null
       }
     });
     
