@@ -46,11 +46,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // MongoDB connection
 const connectDB = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      console.error('MONGODB_URI environment variable is not set');
-      console.log('Please create a .env file with your MongoDB Atlas URI');
-      console.log('Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/textile-inventory');
-      process.exit(1);
+    if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('username:password')) {
+      console.warn('MONGODB_URI environment variable is not properly configured');
+      console.log('Running in development mode without database connection');
+      console.log('Frontend will be available but API endpoints will not work');
+      return;
     }
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
@@ -61,7 +61,8 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('Database connection error:', error.message);
-    process.exit(1);
+    console.log('Running in development mode without database connection');
+    console.log('Frontend will be available but API endpoints will not work');
   }
 };
 
