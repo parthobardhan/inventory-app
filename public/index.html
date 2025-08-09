@@ -146,28 +146,12 @@
                             Analytics Dashboard
                         </h5>
                     </div>
-                    <div class="card-body">
-                        <div id="analyticsContainer">
-                            <div class="row">
-                                <div class="col-12 mb-4">
-                                    <div class="chart-container">
-                                        <h6 class="text-center mb-3">Inventory Distribution by Type</h6>
-                                        <canvas id="pieChart" width="400" height="200"></canvas>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="chart-container">
-                                        <h6 class="text-center mb-3">Inventory Value by Type</h6>
-                                        <canvas id="barChart" width="400" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="emptyAnalyticsState" class="text-center text-muted py-4" style="display: none;">
-                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
-                                <br>
-                                <p>Add products to see analytics visualizations</p>
-                            </div>
-                        </div>
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-3">View comprehensive analytics and visualizations of your inventory data</p>
+                        <button type="button" class="btn btn-primary btn-lg" id="openAnalyticsBtn">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Open Analytics Dashboard
+                        </button>
                     </div>
                 </div>
             </div>
@@ -221,6 +205,118 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full-Page Analytics Dashboard -->
+    <div id="fullAnalyticsDashboard" class="full-page-dashboard" style="display: none;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Analytics Dashboard
+                        </h2>
+                        <button type="button" class="btn btn-outline-secondary" id="closeAnalyticsBtn">
+                            <i class="fas fa-times me-2"></i>
+                            Close Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enhanced Summary Metrics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="analytics-metric-card-large border rounded p-4 text-center">
+                        <h6 class="text-muted mb-2">Total Products</h6>
+                        <h2 class="text-primary mb-0 fw-bold" id="dashboardTotalProducts">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="analytics-metric-card-large border rounded p-4 text-center">
+                        <h6 class="text-muted mb-2">Total Value</h6>
+                        <h2 class="text-success mb-0 fw-bold" id="dashboardTotalValue">$0.00</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="analytics-metric-card-large border rounded p-4 text-center">
+                        <h6 class="text-muted mb-2">Product Types</h6>
+                        <h2 class="text-info mb-0 fw-bold" id="dashboardProductTypes">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="analytics-metric-card-large border rounded p-4 text-center">
+                        <h6 class="text-muted mb-2">Avg. Product Value</h6>
+                        <h2 class="text-warning mb-0 fw-bold" id="dashboardAvgValue">$0.00</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Inventory Distribution by Type
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container-large">
+                                <canvas id="dashboardPieChart" width="400" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Inventory Value by Type
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container-large">
+                                <canvas id="dashboardBarChart" width="400" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Type Breakdown Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-table me-2"></i>
+                                Detailed Breakdown by Type
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="dashboardTypeBreakdown" class="table-responsive">
+                                <!-- Type breakdown table will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="dashboardEmptyState" class="text-center text-muted py-5" style="display: none;">
+                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                <h4>No Data Available</h4>
+                <p>Add products to your inventory to see analytics visualizations</p>
+                <button type="button" class="btn btn-primary" id="closeAnalyticsEmptyBtn">
+                    <i class="fas fa-plus me-2"></i>
+                    Go Add Products
+                </button>
             </div>
         </div>
     </div>

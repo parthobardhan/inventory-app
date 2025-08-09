@@ -11,6 +11,8 @@ class InventoryManager {
         this.syncInProgress = false;
         this.pieChart = null;
         this.barChart = null;
+        this.dashboardPieChart = null;
+        this.dashboardBarChart = null;
         this.init();
     }
 
@@ -71,6 +73,18 @@ class InventoryManager {
             } else if (button.classList.contains('delete-btn')) {
                 this.deleteProduct(productId);
             }
+        });
+
+        document.getElementById('openAnalyticsBtn').addEventListener('click', () => {
+            this.openAnalyticsDashboard();
+        });
+
+        document.getElementById('closeAnalyticsBtn').addEventListener('click', () => {
+            this.closeAnalyticsDashboard();
+        });
+
+        document.getElementById('closeAnalyticsEmptyBtn').addEventListener('click', () => {
+            this.closeAnalyticsDashboard();
         });
     }
 
@@ -518,18 +532,103 @@ class InventoryManager {
     }
 
     updateAnalyticsDashboard(typeBreakdown) {
+        this.latestTypeBreakdown = typeBreakdown;
+        
+        if (document.getElementById('fullAnalyticsDashboard').style.display !== 'none') {
+            this.updateFullPageDashboard(typeBreakdown);
+        }
+    }
+
+    openAnalyticsDashboard() {
+        // Show the full-page dashboard
+        document.getElementById('fullAnalyticsDashboard').style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+        if (this.latestTypeBreakdown) {
+            this.updateFullPageDashboard(this.latestTypeBreakdown);
+        } else {
+            // Load fresh data if none available
+            this.updateSummary();
+        }
+    }
+
+    closeAnalyticsDashboard() {
+        document.getElementById('fullAnalyticsDashboard').style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restore scrolling
+    }
+
+    updateFullPageDashboard(typeBreakdown) {
         const hasData = Object.keys(typeBreakdown).length > 0;
         
         if (hasData) {
-            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'block';
-            document.getElementById('emptyAnalyticsState').style.display = 'none';
+            document.getElementById('dashboardEmptyState').style.display = 'none';
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(2)').style.display = 'flex'; // Metrics row
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(3)').style.display = 'flex'; // Charts row
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(4)').style.display = 'flex'; // Table row
             
-            this.renderPieChart(typeBreakdown);
-            this.renderBarChart(typeBreakdown);
+            this.updateDashboardMetrics(typeBreakdown);
+            
+            this.renderDashboardPieChart(typeBreakdown);
+            this.renderDashboardBarChart(typeBreakdown);
+            
+            this.updateDashboardBreakdownTable(typeBreakdown);
         } else {
-            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'none';
-            document.getElementById('emptyAnalyticsState').style.display = 'block';
+            document.getElementById('dashboardEmptyState').style.display = 'block';
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(2)').style.display = 'none';
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(3)').style.display = 'none';
+            document.querySelector('#fullAnalyticsDashboard .row:nth-child(4)').style.display = 'none';
         }
+    }
+
+    updateDashboardMetrics(typeBreakdown) {
+        const totalProducts = Object.values(typeBreakdown).reduce((sum, item) => sum + item.count, 0);
+        const totalValue = Object.values(typeBreakdown).reduce((sum, item) => sum + item.value, 0);
+        const productTypes = Object.keys(typeBreakdown).length;
+        const avgValue = totalProducts > 0 ? totalValue / totalProducts : 0;
+
+        document.getElementById('dashboardTotalProducts').textContent = totalProducts;
+        document.getElementById('dashboardTotalValue').textContent = `$${totalValue.toFixed(2)}`;
+        document.getElementById('dashboardProductTypes').textContent = productTypes;
+        document.getElementById('dashboardAvgValue').textContent = `$${avgValue.toFixed(2)}`;
+    }
+
+    updateDashboardBreakdownTable(typeBreakdown) {
+        const tableHtml = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Product Type</th>
+                        <th>Count</th>
+                        <th>Total Value</th>
+                        <th>Average Value</th>
+                        <th>Percentage of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(typeBreakdown).map(([type, data]) => {
+                        const totalValue = Object.values(typeBreakdown).reduce((sum, item) => sum + item.value, 0);
+                        const percentage = totalValue > 0 ? ((data.value / totalValue) * 100).toFixed(1) : 0;
+                        const avgValue = data.count > 0 ? (data.value / data.count).toFixed(2) : '0.00';
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <span class="badge" style="background-color: ${this.getTypeColors()[type] || '#999999'}">
+                                        ${this.formatProductType(type)}
+                                    </span>
+                                </td>
+                                <td>${data.count}</td>
+                                <td>$${data.value.toFixed(2)}</td>
+                                <td>$${avgValue}</td>
+                                <td>${percentage}%</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+        
+        document.getElementById('dashboardTypeBreakdown').innerHTML = tableHtml;
     }
 
     renderPieChart(typeBreakdown) {
@@ -629,6 +728,118 @@ class InventoryManager {
             this.barChart.destroy();
         }
         this.barChart = new Chart(ctx, config);
+    }
+
+    renderDashboardPieChart(typeBreakdown) {
+        const ctx = document.getElementById('dashboardPieChart').getContext('2d');
+        const colors = this.getTypeColors();
+        
+        const data = {
+            labels: Object.keys(typeBreakdown).map(type => this.formatProductType(type)),
+            datasets: [{
+                data: Object.values(typeBreakdown).map(item => item.count),
+                backgroundColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderWidth: 3,
+                borderColor: '#ffffff'
+            }]
+        };
+
+        const config = {
+            type: 'pie',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} items (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        if (this.dashboardPieChart) {
+            this.dashboardPieChart.destroy();
+        }
+        this.dashboardPieChart = new Chart(ctx, config);
+    }
+
+    renderDashboardBarChart(typeBreakdown) {
+        const ctx = document.getElementById('dashboardBarChart').getContext('2d');
+        const colors = this.getTypeColors();
+        
+        const data = {
+            labels: Object.keys(typeBreakdown).map(type => this.formatProductType(type)),
+            datasets: [{
+                label: 'Inventory Value',
+                data: Object.values(typeBreakdown).map(item => item.value),
+                backgroundColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderWidth: 2
+            }]
+        };
+
+        const config = {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: $${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            },
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        if (this.dashboardBarChart) {
+            this.dashboardBarChart.destroy();
+        }
+        this.dashboardBarChart = new Chart(ctx, config);
     }
 
     async uploadProductImage(productId, imageFile, generateAI = true) {
