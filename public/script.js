@@ -9,6 +9,8 @@ class InventoryManager {
         this.lastSyncKey = 'textileInventory_lastSync';
         this.isOnline = navigator.onLine;
         this.syncInProgress = false;
+        this.pieChart = null;
+        this.barChart = null;
         this.init();
     }
 
@@ -486,6 +488,8 @@ class InventoryManager {
                 `).join('');
 
                 document.getElementById('typeBreakdown').innerHTML = breakdownHtml || '<p class="text-muted text-center">No products yet</p>';
+                
+                this.updateAnalyticsDashboard(summary.typeBreakdown);
             }
         } catch (error) {
             console.error('Error updating summary:', error);
@@ -501,6 +505,130 @@ class InventoryManager {
             'towels': 'Towels'
         };
         return typeMap[type] || type;
+    }
+
+    getTypeColors() {
+        return {
+            'bed-covers': '#FF6384',
+            'cushion-covers': '#36A2EB', 
+            'sarees': '#FFCE56',
+            'napkins': '#4BC0C0',
+            'towels': '#9966FF'
+        };
+    }
+
+    updateAnalyticsDashboard(typeBreakdown) {
+        const hasData = Object.keys(typeBreakdown).length > 0;
+        
+        if (hasData) {
+            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'block';
+            document.getElementById('emptyAnalyticsState').style.display = 'none';
+            
+            this.renderPieChart(typeBreakdown);
+            this.renderBarChart(typeBreakdown);
+        } else {
+            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'none';
+            document.getElementById('emptyAnalyticsState').style.display = 'block';
+        }
+    }
+
+    renderPieChart(typeBreakdown) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        const colors = this.getTypeColors();
+        
+        const data = {
+            labels: Object.keys(typeBreakdown).map(type => this.formatProductType(type)),
+            datasets: [{
+                data: Object.values(typeBreakdown).map(item => item.count),
+                backgroundColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        };
+
+        const config = {
+            type: 'pie',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} items (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        if (this.pieChart) {
+            this.pieChart.destroy();
+        }
+        this.pieChart = new Chart(ctx, config);
+    }
+
+    renderBarChart(typeBreakdown) {
+        const ctx = document.getElementById('barChart').getContext('2d');
+        const colors = this.getTypeColors();
+        
+        const data = {
+            labels: Object.keys(typeBreakdown).map(type => this.formatProductType(type)),
+            datasets: [{
+                label: 'Inventory Value',
+                data: Object.values(typeBreakdown).map(item => item.value),
+                backgroundColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderColor: Object.keys(typeBreakdown).map(type => colors[type] || '#999999'),
+                borderWidth: 1
+            }]
+        };
+
+        const config = {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: $${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        if (this.barChart) {
+            this.barChart.destroy();
+        }
+        this.barChart = new Chart(ctx, config);
     }
 
     async uploadProductImage(productId, imageFile, generateAI = true) {
