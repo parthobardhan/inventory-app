@@ -34,6 +34,8 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
 }));
 app.use(cors());
 app.use(limiter);
