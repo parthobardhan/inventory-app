@@ -12,76 +12,30 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_availability_zones" "available" {
-  state = "available"
+data "aws_vpc" "default" {
+  default = true
 }
 
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name      = "textile-inventory-vpc"
-    owner     = "partho.bardhan"
-    purpose   = "training"
-    expire-on = "2025-09-15"
+data "aws_subnets" "default_public" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+  
+  filter {
+    name   = "map-public-ip-on-launch"
+    values = ["true"]
   }
 }
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name      = "textile-inventory-igw"
-    owner     = "partho.bardhan"
-    purpose   = "training"
-    expire-on = "2025-09-15"
-  }
-}
-
-resource "aws_subnet" "public" {
-  count = 2
-
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 1}.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name      = "textile-inventory-public-subnet-${count.index + 1}"
-    owner     = "partho.bardhan"
-    purpose   = "training"
-    expire-on = "2025-09-15"
-  }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name      = "textile-inventory-public-rt"
-    owner     = "partho.bardhan"
-    purpose   = "training"
-    expire-on = "2025-09-15"
-  }
-}
-
-resource "aws_route_table_association" "public" {
-  count = 2
-
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
+data "aws_subnet" "selected_subnets" {
+  count = min(2, length(data.aws_subnets.default_public.ids))
+  id    = data.aws_subnets.default_public.ids[count.index]
 }
 
 resource "aws_security_group" "alb" {
   name_prefix = "textile-inventory-alb-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -114,7 +68,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs_tasks" {
   name_prefix = "textile-inventory-ecs-tasks-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port       = 3000
@@ -143,7 +97,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
+  subnets            = slice(data.aws_subnets.default_public.ids, 0, 2)
 
   enable_deletion_protection = false
 
@@ -159,7 +113,7 @@ resource "aws_lb_target_group" "app" {
   name        = "textile-inventory-tg"
   port        = 3000
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
 
   health_check {
@@ -193,20 +147,8 @@ resource "aws_lb_listener" "app" {
   }
 }
 
-resource "aws_ecr_repository" "app" {
-  name                 = "textile-inventory-app"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = {
-    Name      = "textile-inventory-app"
-    owner     = "partho.bardhan"
-    purpose   = "training"
-    expire-on = "2025-09-15"
-  }
+data "aws_ecr_repository" "app" {
+  name = "textile-inventory-app"
 }
 
 resource "aws_ecs_cluster" "main" {
@@ -253,7 +195,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name  = "textile-inventory-app"
-      image = "${aws_ecr_repository.app.repository_url}:latest"
+      image = "${data.aws_ecr_repository.app.repository_url}:latest"
       
       portMappings = [
         {
@@ -326,7 +268,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.public[*].id
+    subnets          = slice(data.aws_subnets.default_public.ids, 0, 2)
     assign_public_ip = true
   }
 
