@@ -24,19 +24,11 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  crossOriginOpenerPolicy: false,
-  crossOriginResourcePolicy: false,
-}));
+// app.use(helmet({
+//   contentSecurityPolicy: false,
+//   crossOriginOpenerPolicy: false,
+//   crossOriginResourcePolicy: false,
+// }));
 app.use(cors());
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
