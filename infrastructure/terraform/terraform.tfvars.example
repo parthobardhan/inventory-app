@@ -1,0 +1,21 @@
+# Terraform Variables Configuration for Textile Inventory App
+# Copy this file to terraform.tfvars and update with your actual values
+
+# AWS Configuration
+aws_region = "us-east-1"
+
+# S3 Bucket for Image Storage
+# This should be an existing bucket or one you want to create
+s3_bucket_name = "partho-inventory-images"
+
+# MongoDB Atlas Connection String
+# Get this from your MongoDB Atlas dashboard
+mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/textile-inventory?retryWrites=true&w=majority"
+
+# Hugging Face API Key for AI Services
+# Get this from https://huggingface.co/settings/tokens
+huggingface_api_key = "hf_your_api_key_here"
+
+# JWT Secret for Authentication
+# Generate a secure random string
+jwt_secret = "your-secure-jwt-secret-key-here"
