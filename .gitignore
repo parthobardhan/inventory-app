@@ -86,6 +86,15 @@ images/
 # AWS credentials (if accidentally added)
 .aws/
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.pem
+*.key
+terraform.tfvars
+.terraform.lock.hcl
+
 # Hugging Face cache
 .cache/
 

@@ -20,7 +20,10 @@ const limiter = rateLimit({
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
-  }
+  },
+  trustProxy: true, // Trust X-Forwarded-For headers from load balancer
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
 // Middleware
