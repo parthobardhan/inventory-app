@@ -1,5 +1,7 @@
 aws_region = "us-east-1"
 instance_type = "t3.small"
 key_pair_name = "textile-inventory-debug"
+mongodb_uri = "${MONGODB_URI_2}"
+huggingface_api_key = "hf_placeholder_key"
 jwt_secret = "textile-inventory-jwt-secret-1754921911"
 s3_bucket_name = "textile-inventory-images-1754921911"
