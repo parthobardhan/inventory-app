@@ -1,6 +1,7 @@
 const { HfInference } = require('@huggingface/inference');
 const axios = require('axios');
 
+
 const HF_TIMEOUT_MS = parseInt(process.env.HF_TIMEOUT_MS || '20000', 10);
 const HF_MAX_RETRIES = parseInt(process.env.HF_MAX_RETRIES || '2', 10);
 const HF_BACKOFF_MS = parseInt(process.env.HF_BACKOFF_MS || '500', 10);
@@ -33,11 +34,15 @@ async function withRetries(fn, maxRetries = HF_MAX_RETRIES, backoffMs = HF_BACKO
 
 async function hfRestImageToText(modelId, imageUrl, token) {
   const url = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
+  const imgResp = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: HF_TIMEOUT_MS });
   const res = await axios.post(
     url,
-    { inputs: imageUrl },
+    Buffer.from(imgResp.data),
     {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/octet-stream'
+      },
       timeout: HF_TIMEOUT_MS,
       validateStatus: () => true
     }
