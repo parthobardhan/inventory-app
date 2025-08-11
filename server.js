@@ -8,6 +8,8 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
 
 // Import routes
 const productRoutes = require('./routes/products');
@@ -127,9 +129,10 @@ process.on('SIGINT', () => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  const base = process.env.PUBLIC_BASE_URL || `http://${HOST}:${PORT}`;
+  console.log(`Server running on ${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Frontend available at: http://localhost:${PORT}`);
-  console.log(`API available at: http://localhost:${PORT}/api`);
+  console.log(`Frontend available at: ${base}`);
+  console.log(`API available at: ${base}/api`);
 });
