@@ -276,11 +276,13 @@ resource "aws_instance" "app" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   
   user_data = base64encode(templatefile("${path.module}/user-data.sh", {
-    mongodb_uri         = var.mongodb_uri
-    huggingface_api_key = var.huggingface_api_key
-    jwt_secret          = var.jwt_secret
-    s3_bucket_name      = aws_s3_bucket.images.bucket
-    aws_region          = var.aws_region
+    mongodb_uri           = var.mongodb_uri
+    huggingface_api_key   = var.huggingface_api_key
+    jwt_secret            = var.jwt_secret
+    s3_bucket_name        = aws_s3_bucket.images.bucket
+    aws_region            = var.aws_region
+    aws_access_key_id     = var.aws_access_key_id
+    aws_secret_access_key = var.aws_secret_access_key
   }))
   
   tags = {

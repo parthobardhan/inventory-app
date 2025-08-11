@@ -17,6 +17,7 @@ mkdir -p /opt/textile-inventory
 cd /opt/textile-inventory
 
 git clone https://github.com/parthobardhan/inventory-app.git .
+git checkout devin/1754858234-aws-deployment
 
 npm install --production
 
@@ -28,6 +29,8 @@ HUGGINGFACE_API_KEY=${huggingface_api_key}
 JWT_SECRET=${jwt_secret}
 AWS_REGION=${aws_region}
 S3_BUCKET_NAME=${s3_bucket_name}
+AWS_ACCESS_KEY_ID=${aws_access_key_id}
+AWS_SECRET_ACCESS_KEY=${aws_secret_access_key}
 EOF
 
 cat > /etc/systemd/system/textile-inventory.service << EOF

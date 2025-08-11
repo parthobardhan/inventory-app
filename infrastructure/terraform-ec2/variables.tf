@@ -34,6 +34,18 @@ variable "huggingface_api_key" {
   sensitive   = true
 }
 
+variable "aws_access_key_id" {
+  description = "AWS Access Key ID for S3 operations"
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS Secret Access Key for S3 operations"
+  type        = string
+  sensitive   = true
+}
+
 variable "jwt_secret" {
   description = "JWT secret for authentication"
   type        = string
