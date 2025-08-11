@@ -1,13 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy for load balancer
+app.set('trust proxy', true);
 
 // Import routes
 const productRoutes = require('./routes/products');
@@ -27,11 +29,6 @@ const limiter = rateLimit({
 });
 
 // Middleware
-// app.use(helmet({
-//   contentSecurityPolicy: false,
-//   crossOriginOpenerPolicy: false,
-//   crossOriginResourcePolicy: false,
-// }));
 app.use(cors());
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
