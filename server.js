@@ -1,13 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy for load balancer
+app.set('trust proxy', true);
 
 // Import routes
 const productRoutes = require('./routes/products');
@@ -20,21 +22,13 @@ const limiter = rateLimit({
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
-  }
+  },
+  trustProxy: true, // Trust X-Forwarded-For headers from load balancer
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
 // Middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-}));
 app.use(cors());
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
