@@ -1,6 +1,6 @@
 # Inventory Management System
 
-A modern web-based inventory management system specifically designed for textile products including bed covers, cushion covers, sarees, napkins, and towels.
+A modern web-based inventory management system specifically designed for textile products including bed covers, cushion covers, napkins, and towels.
 
 ## Features
 
