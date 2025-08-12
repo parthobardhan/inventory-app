@@ -16,7 +16,6 @@ A modern web-based inventory management system specifically designed for textile
 
 - Bed Covers
 - Cushion Covers
-- Sarees
 - Napkins
 - Towels
 
