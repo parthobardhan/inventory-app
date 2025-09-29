@@ -11,8 +11,8 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Product type is required'],
     enum: {
-      values: ['bed-covers', 'cushion-covers', 'sarees', 'napkins', 'towels'],
-      message: 'Product type must be one of: bed-covers, cushion-covers, sarees, napkins, towels'
+      values: ['bed-covers', 'cushion-covers', 'sarees', 'towels'],
+      message: 'Product type must be one of: bed-covers, cushion-covers, sarees, towels'
     }
   },
   quantity: {
@@ -33,6 +33,11 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Description cannot exceed 500 characters']
+  },
+  caption: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Caption cannot exceed 300 characters']
   },
   // Image metadata for AWS S3 storage
   images: [{

@@ -8,7 +8,6 @@ class AnalyticsDashboard {
             'bed-covers': '#0d6efd',      // Bootstrap primary blue
             'cushion-covers': '#198754',   // Bootstrap success green
             'sarees': '#6f42c1',          // Bootstrap purple
-            'napkins': '#fd7e14',         // Bootstrap orange
             'towels': '#dc3545'           // Bootstrap danger red
         };
         this.init();
@@ -184,7 +183,6 @@ class AnalyticsDashboard {
             'bed-covers': 'Bed Covers',
             'cushion-covers': 'Cushion Covers',
             'sarees': 'Sarees',
-            'napkins': 'Napkins',
             'towels': 'Towels'
         };
         return typeMap[type] || type;

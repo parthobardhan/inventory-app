@@ -74,6 +74,12 @@ router.post('/upload/:productId', upload.single('image'), async (req, res) => {
             product.description = aiResult.description;
             console.log('Updated product description with AI description:', aiResult.description);
           }
+          
+          // Always update the caption with the raw AI-generated caption
+          if (aiResult.rawCaption) {
+            product.caption = aiResult.rawCaption;
+            console.log('Updated product caption with AI raw caption:', aiResult.rawCaption);
+          }
         }
       } catch (error) {
         console.error('AI generation failed:', error);
@@ -145,6 +151,13 @@ router.post('/:productId/:imageId/generate-ai', async (req, res) => {
     
     // Update image with AI data
     image.aiGenerated = aiResult;
+    
+    // Also update the product caption with the raw AI-generated caption
+    if (aiResult.rawCaption) {
+      product.caption = aiResult.rawCaption;
+      console.log('Updated product caption with regenerated AI raw caption:', aiResult.rawCaption);
+    }
+    
     await product.save();
     
     res.json({

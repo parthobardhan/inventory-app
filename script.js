@@ -475,7 +475,6 @@ class InventoryManager {
             'bed-covers': 'Bed Covers',
             'cushion-covers': 'Cushion Covers',
             'sarees': 'Sarees',
-            'napkins': 'Napkins',
             'towels': 'Towels'
         };
         return typeMap[type] || type;
