@@ -83,7 +83,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve frontend
+// Serve specific pages first (before catch-all)
+app.get('/coverz', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'coverz.html'));
+});
+
+app.get('/bed-covers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'bed-covers.html'));
+});
+
+// Serve frontend home page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -96,7 +105,7 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// Handle all other routes by serving the frontend
+// Handle all other routes by serving the frontend (catch-all must be last)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
