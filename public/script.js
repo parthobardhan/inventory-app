@@ -11,15 +11,40 @@ class InventoryManager {
         this.syncInProgress = false;
         this.pieChart = null;
         this.barChart = null;
+        this.dbManager = new IndexedDBManager();
         this.init();
     }
 
     async init() {
-        this.bindEvents();
-        this.setupNetworkMonitoring();
-        await this.loadProducts();
-        this.renderProducts();
-        await this.updateSummary();
+        try {
+            // Initialize IndexedDB
+            await this.dbManager.init();
+            console.log('IndexedDB initialized successfully');
+            
+            this.bindEvents();
+            this.setupNetworkMonitoring();
+            await this.loadProducts();
+            this.renderProducts();
+            await this.updateSummary();
+            
+            // Setup service worker message listener for sync
+            this.setupServiceWorkerSync();
+            
+            // Perform initial sync if online
+            if (this.isOnline) {
+                this.syncWithDatabase();
+            }
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+            this.showAlert('Failed to initialize app. Some features may not work properly.', 'error');
+            
+            // Fallback to localStorage if IndexedDB fails
+            this.bindEvents();
+            this.setupNetworkMonitoring();
+            await this.loadProducts();
+            this.renderProducts();
+            await this.updateSummary();
+        }
     }
 
     bindEvents() {
@@ -87,6 +112,16 @@ class InventoryManager {
         });
     }
 
+    setupServiceWorkerSync() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SYNC_OFFLINE_PRODUCTS') {
+                    this.syncWithDatabase();
+                }
+            });
+        }
+    }
+
     loadFromCache() {
         try {
             const cached = localStorage.getItem(this.cacheKey);
@@ -137,18 +172,39 @@ class InventoryManager {
         try {
             this.showLoading(true);
             
-            // Load from cache first for immediate display
-            const cachedData = this.loadFromCache();
-            if (cachedData) {
-                this.products = cachedData;
-                this.filteredProducts = [...this.products];
-                this.renderProducts(); // Show cached data immediately
+            // Load from IndexedDB first for immediate display
+            try {
+                const indexedDBProducts = await this.dbManager.getAllProducts();
+                if (indexedDBProducts && indexedDBProducts.length > 0) {
+                    this.products = indexedDBProducts;
+                    this.filteredProducts = [...this.products];
+                    this.renderProducts(); // Show IndexedDB data immediately
+                    console.log('Products loaded from IndexedDB:', this.products.length);
+                }
+            } catch (dbError) {
+                console.warn('IndexedDB load failed, trying localStorage:', dbError);
+                
+                // Fallback to localStorage cache
+                const cachedData = this.loadFromCache();
+                if (cachedData) {
+                    this.products = cachedData;
+                    this.filteredProducts = [...this.products];
+                    this.renderProducts(); // Show cached data immediately
+                    
+                    // Try to migrate to IndexedDB
+                    try {
+                        await this.saveProductsToIndexedDB(this.products);
+                        console.log('Migrated products to IndexedDB');
+                    } catch (migrationError) {
+                        console.warn('Failed to migrate to IndexedDB:', migrationError);
+                    }
+                }
             }
             
             // Then sync with database if online
             if (this.isOnline && !this.syncInProgress) {
                 await this.syncWithDatabase();
-            } else if (!this.isOnline && !cachedData) {
+            } else if (!this.isOnline && this.products.length === 0) {
                 this.showAlert('You are offline. Please connect to the internet to load data.', 'warning');
             }
             
@@ -157,6 +213,16 @@ class InventoryManager {
             this.showAlert('Error loading products: ' + error.message, 'danger');
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    async saveProductsToIndexedDB(products) {
+        for (const product of products) {
+            try {
+                await this.dbManager.saveProduct(product);
+            } catch (error) {
+                console.error('Failed to save product to IndexedDB:', product._id, error);
+            }
         }
     }
 
