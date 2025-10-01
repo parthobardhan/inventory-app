@@ -218,7 +218,7 @@ async function generateLLaVACaption(imageBuffer, productType) {
     const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
     const targetCategory = productType || 'textile product';
     
-    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy description of one or two sentences that will be used in the product description. The description should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
+    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy caption of one or two sentences that will be used in the product caption. The caption should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. Keep the caption under 200 characters. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
 
     console.log(`📝 Using local LLaVA prompt for ${targetCategory}: "${userPrompt}"`);
 
@@ -257,7 +257,8 @@ async function generateLLaVACaption(imageBuffer, productType) {
       throw new Error('Ollama LLaVA model returned empty response');
     }
 
-    // Minimal processing for catchy descriptions - just ensure proper capitalization
+    // Minimal processing for catchy descriptions - remove quotes and ensure proper capitalization
+    caption = caption.replace(/^["']|["']$/g, '').trim(); // Remove leading/trailing quotes
     caption = caption.charAt(0).toUpperCase() + caption.slice(1);
     console.log(`✅ Local LLaVA caption processed: "${caption}"`);
 
@@ -408,7 +409,7 @@ async function generateLLaVACaptionOnly(imageBuffer, productType) {
     const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
     const targetCategory = productType || 'textile product';
     
-    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy description of one or two sentences that will be used in the product description. The description should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
+    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy caption of one or two sentences that will be used in the product caption. The caption should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. Keep the caption under 200 characters. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
 
     console.log(`📝 Using local LLaVA prompt for ${targetCategory}: "${userPrompt}"`);
 
@@ -448,7 +449,8 @@ async function generateLLaVACaptionOnly(imageBuffer, productType) {
       throw new Error('Ollama LLaVA model returned empty response - NO FALLBACK USED');
     }
 
-    // Minimal processing for catchy descriptions - just ensure proper capitalization
+    // Minimal processing for catchy descriptions - remove quotes and ensure proper capitalization
+    caption = caption.replace(/^["']|["']$/g, '').trim(); // Remove leading/trailing quotes
     caption = caption.charAt(0).toUpperCase() + caption.slice(1);
     console.log(`✅ Local LLaVA caption processed: "${caption}"`);
 
