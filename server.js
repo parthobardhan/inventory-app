@@ -10,7 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Trust proxy for Vercel/reverse proxy deployments
-app.set('trust proxy', true);
+// Use specific hop count for Vercel's proxy setup
+app.set('trust proxy', 1);
 
 // Import routes
 const productRoutes = require('./routes/products');
@@ -23,6 +24,15 @@ const limiter = rateLimit({
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
+  },
+  // Use a more secure key generator for Vercel
+  keyGenerator: (req) => {
+    // For Vercel, the real IP is in x-forwarded-for header
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
+  // Skip rate limiting for successful requests to static assets
+  skip: (req) => {
+    return req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/);
   }
 });
 
