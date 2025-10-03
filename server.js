@@ -80,37 +80,8 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// PWA Manifest with correct MIME type
-app.get('/manifest.json', (req, res) => {
-  const manifestPath = path.join(__dirname, 'public', 'manifest.json');
-  
-  res.setHeader('Content-Type', 'application/manifest+json');
-  res.setHeader('Cache-Control', 'public, max-age=31536000');
-  
-  res.sendFile(manifestPath, (err) => {
-    if (err) {
-      console.error('Error serving manifest.json:', err);
-      res.status(404).json({ error: 'Manifest not found' });
-    }
-  });
-});
-
-// Service Worker with correct MIME type
-app.get('/sw.js', (req, res) => {
-  const swPath = path.join(__dirname, 'public', 'sw.js');
-  
-  // Add error handling for Vercel environment
-  res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Service-Worker-Allowed', '/');
-  res.setHeader('Cache-Control', 'public, max-age=0');
-  
-  res.sendFile(swPath, (err) => {
-    if (err) {
-      console.error('Error serving sw.js:', err);
-      res.status(404).send('// Service Worker not found');
-    }
-  });
-});
+// Note: /manifest.json and /sw.js are served directly by Vercel as static files
+// See vercel.json routes configuration for proper headers
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
