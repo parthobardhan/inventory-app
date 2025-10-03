@@ -9,6 +9,9 @@ require('dotenv').config({ path: './dev.env' });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Vercel/reverse proxy deployments
+app.set('trust proxy', true);
+
 // Import routes
 const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
