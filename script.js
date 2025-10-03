@@ -49,6 +49,11 @@ class InventoryManager {
             this.saveEditedProduct();
         });
 
+        // Add product modal button
+        document.getElementById('addProductBtn').addEventListener('click', () => {
+            this.addProductFromModal();
+        });
+
         // Image upload functionality
         document.getElementById('productImage').addEventListener('change', (e) => {
             this.handleImagePreview(e);
@@ -340,6 +345,76 @@ class InventoryManager {
         } catch (error) {
             console.error('Error updating product:', error);
             this.showAlert('Error updating product. Please check your connection.', 'danger');
+        }
+    }
+
+    async addProductFromModal() {
+        const name = document.getElementById('modalProductName').value.trim();
+        const type = document.getElementById('modalProductType').value;
+        const quantity = parseInt(document.getElementById('modalQuantity').value);
+        const price = parseFloat(document.getElementById('modalPrice').value);
+        const description = document.getElementById('modalDescription').value.trim();
+        const imageFile = document.getElementById('modalProductImage').files[0];
+        const generateAI = document.getElementById('modalGenerateAI').checked;
+
+        if (!name || !type || quantity < 0 || price < 0) {
+            this.showAlert('Please fill in all required fields with valid values.', 'danger');
+            return;
+        }
+
+        const product = {
+            name,
+            type,
+            quantity,
+            price,
+            description
+        };
+
+        try {
+            let response;
+            
+            if (imageFile && generateAI) {
+                // Handle image upload with AI generation
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('productData', JSON.stringify(product));
+                formData.append('generateAI', 'true');
+
+                response = await fetch(`${this.apiBaseUrl}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+            } else {
+                // Regular product addition
+                response = await fetch(this.apiBaseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(product)
+                });
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showAlert(`Product "${name}" added successfully!`, 'success');
+                
+                // Close modal and reset form
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                modal.hide();
+                document.getElementById('modalProductForm').reset();
+                
+                // Reload products
+                await this.loadProducts();
+                this.renderProducts();
+                this.updateSummary();
+            } else {
+                this.showAlert('Error adding product: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error adding product:', error);
+            this.showAlert('Error adding product. Please check your connection.', 'danger');
         }
     }
 

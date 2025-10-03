@@ -16,7 +16,7 @@ const imageRoutes = require('./routes/images');
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit for development
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
@@ -28,10 +28,37 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "https://cdn.jsdelivr.net", 
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com"
+      ],
+      scriptSrc: [
+        "'self'", 
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net"
+      ],
+      fontSrc: [
+        "'self'", 
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.gstatic.com"
+      ],
+      imgSrc: [
+        "'self'", 
+        "data:", 
+        "https:",
+        "*.amazonaws.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com",
+        "*.amazonaws.com"
+      ],
     },
   },
 }));

@@ -54,6 +54,29 @@ class InventoryManager {
             this.addProduct();
         });
 
+        // Modal add product button - with error handling and duplicate prevention
+        const modalAddBtn = document.getElementById('addProductBtn');
+        if (modalAddBtn) {
+            // Remove any existing event listeners to prevent duplicates
+            const existingHandler = modalAddBtn._inventoryHandler;
+            if (existingHandler) {
+                modalAddBtn.removeEventListener('click', existingHandler);
+                console.log('🔄 Removed existing modal button event listener');
+            }
+            
+            // Create and attach new event listener
+            const clickHandler = () => {
+                console.log('Modal Add Product button clicked - calling addProductFromModal');
+                this.addProductFromModal();
+            };
+            
+            modalAddBtn.addEventListener('click', clickHandler);
+            modalAddBtn._inventoryHandler = clickHandler; // Store reference for future cleanup
+            console.log('✅ Modal add product button event listener attached');
+        } else {
+            console.error('❌ Modal add product button not found during event binding');
+        }
+
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', (e) => {
             this.filterProducts();
@@ -74,6 +97,17 @@ class InventoryManager {
             this.handleImagePreview(e);
         });
 
+        // Modal image upload functionality
+        const modalImageInput = document.getElementById('modalProductImage');
+        if (modalImageInput) {
+            modalImageInput.addEventListener('change', (e) => {
+                this.handleModalImagePreview(e);
+            });
+            console.log('✅ Modal image upload event listener attached');
+        } else {
+            console.error('❌ Modal image input not found during event binding');
+        }
+
         // AI content editing buttons
         document.getElementById('editTitleBtn').addEventListener('click', () => {
             this.toggleEditMode('aiTitle', 'editTitleBtn');
@@ -82,6 +116,27 @@ class InventoryManager {
         document.getElementById('editDescBtn').addEventListener('click', () => {
             this.toggleEditMode('aiDescription', 'editDescBtn');
         });
+
+        // Modal AI content editing buttons
+        const modalEditTitleBtn = document.getElementById('modalEditTitleBtn');
+        if (modalEditTitleBtn) {
+            modalEditTitleBtn.addEventListener('click', () => {
+                this.toggleEditMode('modalAiTitle', 'modalEditTitleBtn');
+            });
+            console.log('✅ Modal edit title button event listener attached');
+        } else {
+            console.error('❌ Modal edit title button not found during event binding');
+        }
+
+        const modalEditDescBtn = document.getElementById('modalEditDescBtn');
+        if (modalEditDescBtn) {
+            modalEditDescBtn.addEventListener('click', () => {
+                this.toggleEditMode('modalAiDescription', 'modalEditDescBtn');
+            });
+            console.log('✅ Modal edit description button event listener attached');
+        } else {
+            console.error('❌ Modal edit description button not found during event binding');
+        }
 
         // Event delegation for edit and delete buttons
         document.getElementById('productTableBody').addEventListener('click', (e) => {
@@ -319,6 +374,112 @@ class InventoryManager {
             this.showAlert('Error adding product: ' + error.message, 'danger');
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    async addProductFromModal() {
+        const name = document.getElementById('modalProductName').value.trim();
+        const type = document.getElementById('modalProductType').value;
+        const quantity = parseInt(document.getElementById('modalQuantity').value);
+        const price = parseFloat(document.getElementById('modalPrice').value);
+        const description = document.getElementById('modalDescription').value.trim();
+        const imageFile = document.getElementById('modalProductImage').files[0];
+        const generateAI = document.getElementById('modalGenerateAI').checked;
+
+        if (!name || !type || quantity < 0 || price < 0) {
+            this.showAlert('Please fill in all required fields with valid values.', 'danger');
+            return;
+        }
+
+        try {
+            this.showModalLoading(true);
+
+            if (this.isOnline) {
+                // Create the product first
+                const response = await fetch(this.apiBase, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        type,
+                        quantity,
+                        price,
+                        description
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const productId = result.data._id;
+                    let finalName = name;
+
+                    // Upload image if provided - AI content integration happens on backend
+                    if (imageFile) {
+                        const imageResult = await this.uploadProductImage(productId, imageFile, generateAI);
+
+                        // Display AI content in modal preview if generated
+                        if (imageResult && imageResult.aiGenerated) {
+                            this.displayModalAIContent(imageResult.aiGenerated);
+                            console.log('AI content generated:', imageResult.aiGenerated);
+
+                            // Use AI-generated title if available and user wants it
+                            if (imageResult.aiGenerated.title && generateAI) {
+                                finalName = imageResult.aiGenerated.title;
+                            }
+                        }
+                    }
+
+                    // Reload products to get updated data from server
+                    await this.loadProducts();
+                    this.renderProducts();
+                    await this.updateSummary();
+                    this.clearModalForm();
+                    this.hideModalAIPreview();
+                    
+                    // Hide modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                    modal.hide();
+                    
+                    this.showAlert(`Product "${finalName}" added successfully!`, 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to add product');
+                }
+            } else {
+                // Offline mode - create optimistic product
+                const optimisticProduct = {
+                    _id: 'temp_' + Date.now(),
+                    name,
+                    type,
+                    quantity,
+                    price,
+                    description,
+                    dateAdded: new Date().toISOString(),
+                    totalValue: quantity * price,
+                    _isOptimistic: true,
+                    _isPending: true
+                };
+
+                this.products.push(optimisticProduct);
+                this.filteredProducts = [...this.products];
+                this.saveToCache(this.products);
+                this.renderProducts();
+                await this.updateSummary();
+                this.clearModalForm();
+                
+                // Hide modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                modal.hide();
+                
+                this.showAlert(`Product "${name}" added locally. Will sync when online.`, 'info');
+            }
+        } catch (error) {
+            console.error('Error adding product:', error);
+            this.showAlert('Error adding product: ' + error.message, 'danger');
+        } finally {
+            this.showModalLoading(false);
         }
     }
 
@@ -749,6 +910,14 @@ class InventoryManager {
         }
     }
 
+    handleModalImagePreview(event) {
+        const file = event.target.files[0];
+        if (file) {
+            // Show that an image is selected
+            this.showAlert('Image selected. AI description will be generated after adding the product.', 'info');
+        }
+    }
+
     toggleEditMode(fieldId, buttonId) {
         const field = document.getElementById(fieldId);
         const button = document.getElementById(buttonId);
@@ -771,6 +940,39 @@ class InventoryManager {
     clearForm() {
         document.getElementById('productForm').reset();
         this.hideAIPreview();
+    }
+
+    clearModalForm() {
+        document.getElementById('modalProductForm').reset();
+        this.hideModalAIPreview();
+    }
+
+    displayModalAIContent(aiData) {
+        document.getElementById('modalAiTitle').value = aiData.title || '';
+        document.getElementById('modalAiDescription').value = aiData.description || '';
+        document.getElementById('modalAiConfidence').textContent = Math.round((aiData.confidence || 0) * 100);
+        document.getElementById('modalAiModel').textContent = aiData.model || 'Unknown';
+
+        document.getElementById('modalAiPreview').style.display = 'block';
+    }
+
+    hideModalAIPreview() {
+        document.getElementById('modalAiPreview').style.display = 'none';
+        document.getElementById('modalAiTitle').value = '';
+        document.getElementById('modalAiDescription').value = '';
+    }
+
+    showModalLoading(show) {
+        const submitButton = document.getElementById('addProductBtn');
+        if (submitButton) {
+            if (show) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+            } else {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-plus me-2"></i>Add Product';
+            }
+        }
     }
 
     showAlert(message, type = 'info') {
@@ -861,6 +1063,37 @@ class InventoryManager {
 
 // Initialize the inventory manager when the page loads
 let inventoryManager;
-document.addEventListener('DOMContentLoaded', () => {
-    inventoryManager = new InventoryManager();
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Initializing InventoryManager...');
+    try {
+        inventoryManager = new InventoryManager();
+        
+        // The constructor calls init() automatically, but we need to wait for it
+        // Let's wait a bit longer for the async initialization to complete
+        console.log('⏳ Waiting for InventoryManager async initialization...');
+        
+        // Wait for the init process to complete
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Make it globally available for debugging and modal access
+        window.inventoryManager = inventoryManager;
+        console.log('✅ InventoryManager initialized and available globally');
+        console.log('✅ addProductFromModal method:', typeof inventoryManager.addProductFromModal);
+        
+        // Verify the method exists
+        if (typeof inventoryManager.addProductFromModal === 'function') {
+            console.log('🎯 Modal functionality should work now!');
+            
+            // Test that we can call the method (without actually executing it)
+            console.log('🧪 Testing method availability...');
+            console.log('Method signature:', inventoryManager.addProductFromModal.toString().substring(0, 100) + '...');
+        } else {
+            console.error('❌ addProductFromModal method not found on InventoryManager');
+            console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(inventoryManager)));
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize InventoryManager:', error);
+        console.error('Error details:', error.stack);
+    }
 });

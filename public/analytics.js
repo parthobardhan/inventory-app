@@ -218,6 +218,38 @@ class AnalyticsDashboard {
 }
 
 let analyticsDashboard;
-document.addEventListener('DOMContentLoaded', () => {
-    analyticsDashboard = new AnalyticsDashboard();
-});
+
+// Initialize analytics dashboard with Chart.js check
+function initializeDashboard() {
+    console.log('Initializing analytics dashboard...');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        showError('Chart.js library failed to load. Please refresh the page.');
+        return;
+    }
+    
+    console.log('Chart.js is available, creating dashboard...');
+    
+    try {
+        analyticsDashboard = new AnalyticsDashboard();
+        console.log('Analytics dashboard created successfully');
+    } catch (error) {
+        console.error('Error initializing analytics dashboard:', error);
+        showError('Failed to initialize dashboard: ' + error.message);
+    }
+}
+
+// Helper function to show error state
+function showError(message) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorState').style.display = 'block';
+}
+
+// Wait for DOM to be ready and initialize
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeDashboard);
+} else {
+    initializeDashboard();
+}
