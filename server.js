@@ -32,7 +32,9 @@ const limiter = rateLimit({
   },
   // Skip rate limiting for successful requests to static assets
   skip: (req) => {
-    return req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/);
+    return req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/) || 
+           req.url === '/manifest.json' || 
+           req.url === '/sw.js';
   }
 });
 
