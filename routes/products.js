@@ -121,16 +121,44 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/products - Create new product
 router.post('/', async (req, res) => {
+  console.log('🚀 [PRODUCTS API] POST /api/products - Creating new product');
+  console.log('📥 [PRODUCTS API] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🌍 [PRODUCTS API] Environment:', process.env.NODE_ENV);
+  console.log('📊 [PRODUCTS API] Request headers:', {
+    'content-type': req.headers['content-type'],
+    'user-agent': req.headers['user-agent'],
+    'origin': req.headers['origin'],
+    'referer': req.headers['referer']
+  });
+  
   try {
     const { name, type, quantity, price, description } = req.body;
     
+    console.log('🔍 [PRODUCTS API] Extracted fields:', {
+      name: name,
+      type: type,
+      quantity: quantity,
+      price: price,
+      description: description ? description.substring(0, 100) + '...' : 'none'
+    });
+    
     // Validate required fields
     if (!name || !type || quantity === undefined || price === undefined) {
+      console.log('❌ [PRODUCTS API] Validation failed - missing required fields');
+      console.log('❌ [PRODUCTS API] Missing fields:', {
+        name: !name,
+        type: !type,
+        quantity: quantity === undefined,
+        price: price === undefined
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: name, type, quantity, and price are required'
       });
     }
+    
+    console.log('✅ [PRODUCTS API] Validation passed - creating product object');
     
     const product = new Product({
       name,
@@ -140,17 +168,27 @@ router.post('/', async (req, res) => {
       description
     });
     
+    console.log('💾 [PRODUCTS API] Attempting to save product to database...');
     const savedProduct = await product.save();
+    console.log('✅ [PRODUCTS API] Product saved successfully:', {
+      id: savedProduct._id,
+      name: savedProduct.name,
+      type: savedProduct.type
+    });
     
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
       data: savedProduct
     });
+    
+    console.log('📤 [PRODUCTS API] Response sent successfully');
   } catch (error) {
-    console.error('Error creating product:', error);
+    console.error('💥 [PRODUCTS API] Error creating product:', error);
+    console.error('💥 [PRODUCTS API] Error stack:', error.stack);
     
     if (error.name === 'ValidationError') {
+      console.log('❌ [PRODUCTS API] Validation error:', Object.values(error.errors).map(err => err.message));
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -158,6 +196,7 @@ router.post('/', async (req, res) => {
       });
     }
     
+    console.log('❌ [PRODUCTS API] Server error - returning 500');
     res.status(500).json({
       success: false,
       message: 'Error creating product',

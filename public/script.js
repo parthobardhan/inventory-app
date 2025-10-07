@@ -48,11 +48,20 @@ class InventoryManager {
     }
 
     bindEvents() {
+        console.log('🔗 [CLIENT] Binding events...');
+        
         // Add product form
-        document.getElementById('productForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.addProduct();
-        });
+        const mainForm = document.getElementById('productForm');
+        if (mainForm) {
+            console.log('✅ [CLIENT] Main form found, binding submit event');
+            mainForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('📝 [CLIENT] Main form submitted');
+                this.addProduct();
+            });
+        } else {
+            console.log('⚠️ [CLIENT] Main form not found');
+        }
 
         // Modal add product button - with error handling and duplicate prevention
         const modalAddBtn = document.getElementById('addProductBtn');
@@ -66,7 +75,11 @@ class InventoryManager {
             
             // Create and attach new event listener
             const clickHandler = () => {
-                console.log('Modal Add Product button clicked - calling addProductFromModal');
+                console.log('🖱️ [CLIENT] Modal Add Product button clicked');
+                console.log('🔍 [CLIENT] Button element:', modalAddBtn);
+                console.log('🔍 [CLIENT] Modal element exists:', !!document.getElementById('addProductModal'));
+                console.log('🔍 [CLIENT] Form element exists:', !!document.getElementById('modalProductForm'));
+                console.log('🔍 [CLIENT] Calling addProductFromModal...');
                 this.addProductFromModal();
             };
             
@@ -378,11 +391,22 @@ class InventoryManager {
     }
 
     async addProductFromModal() {
+        console.log('🚀 [CLIENT] addProductFromModal() called');
+        console.log('🔍 [CLIENT] Getting form values...');
+        
         const name = document.getElementById('modalProductName').value.trim();
         const type = document.getElementById('modalProductType').value;
         const quantity = parseInt(document.getElementById('modalQuantity').value);
         const price = parseFloat(document.getElementById('modalPrice').value);
         const description = document.getElementById('modalDescription').value.trim();
+        
+        console.log('📝 [CLIENT] Form values extracted:', {
+            name: name,
+            type: type,
+            quantity: quantity,
+            price: price,
+            description: description ? description.substring(0, 50) + '...' : 'none'
+        });
         const imageFile = document.getElementById('modalProductImage').files[0];
         const generateAI = document.getElementById('modalGenerateAI').checked;
 
@@ -392,46 +416,67 @@ class InventoryManager {
         }
 
         try {
+            console.log('⏳ [CLIENT] Showing loading state...');
             this.showModalLoading(true);
 
             if (this.isOnline) {
+                console.log('🌐 [CLIENT] Online - making API request to:', this.apiBase);
+                
+                const requestBody = {
+                    name,
+                    type,
+                    quantity,
+                    price,
+                    description
+                };
+                
+                console.log('📤 [CLIENT] Request body:', JSON.stringify(requestBody, null, 2));
+                
                 // Create the product first
                 const response = await fetch(this.apiBase, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        name,
-                        type,
-                        quantity,
-                        price,
-                        description
-                    })
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('📥 [CLIENT] Response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: Object.fromEntries(response.headers.entries())
                 });
 
                 const result = await response.json();
+                console.log('📋 [CLIENT] Response body:', JSON.stringify(result, null, 2));
 
                 if (result.success) {
+                    console.log('✅ [CLIENT] Product created successfully:', result.data);
                     const productId = result.data._id;
                     let finalName = name;
 
                     // Upload image if provided - AI content integration happens on backend
                     if (imageFile) {
+                        console.log('📸 [CLIENT] Image file provided, uploading...');
                         const imageResult = await this.uploadProductImage(productId, imageFile, generateAI);
 
                         // Display AI content in modal preview if generated
                         if (imageResult && imageResult.aiGenerated) {
+                            console.log('🤖 [CLIENT] AI content generated:', imageResult.aiGenerated);
                             this.displayModalAIContent(imageResult.aiGenerated);
-                            console.log('AI content generated:', imageResult.aiGenerated);
 
                             // Use AI-generated title if available and user wants it
                             if (imageResult.aiGenerated.title && generateAI) {
                                 finalName = imageResult.aiGenerated.title;
+                                console.log('🏷️ [CLIENT] Using AI-generated title:', finalName);
                             }
                         }
+                    } else {
+                        console.log('📸 [CLIENT] No image file provided');
                     }
 
+                    console.log('🔄 [CLIENT] Reloading products and updating UI...');
                     // Reload products to get updated data from server
                     await this.loadProducts();
                     this.renderProducts();
@@ -440,14 +485,18 @@ class InventoryManager {
                     this.hideModalAIPreview();
                     
                     // Hide modal
+                    console.log('👋 [CLIENT] Hiding modal...');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                     modal.hide();
                     
+                    console.log('🎉 [CLIENT] Showing success alert...');
                     this.showAlert(`Product "${finalName}" added successfully!`, 'success');
                 } else {
+                    console.log('❌ [CLIENT] API returned error:', result.message);
                     throw new Error(result.message || 'Failed to add product');
                 }
             } else {
+                console.log('📱 [CLIENT] Offline mode - creating optimistic product');
                 // Offline mode - create optimistic product
                 const optimisticProduct = {
                     _id: 'temp_' + Date.now(),
@@ -462,6 +511,7 @@ class InventoryManager {
                     _isPending: true
                 };
 
+                console.log('💾 [CLIENT] Adding optimistic product to local storage:', optimisticProduct);
                 this.products.push(optimisticProduct);
                 this.filteredProducts = [...this.products];
                 this.saveToCache(this.products);
@@ -470,13 +520,16 @@ class InventoryManager {
                 this.clearModalForm();
                 
                 // Hide modal
+                console.log('👋 [CLIENT] Hiding modal (offline mode)...');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                 modal.hide();
                 
+                console.log('ℹ️ [CLIENT] Showing offline alert...');
                 this.showAlert(`Product "${name}" added locally. Will sync when online.`, 'info');
             }
         } catch (error) {
-            console.error('Error adding product:', error);
+            console.error('💥 [CLIENT] Error adding product:', error);
+            console.error('💥 [CLIENT] Error stack:', error.stack);
             this.showAlert('Error adding product: ' + error.message, 'danger');
         } finally {
             this.showModalLoading(false);
