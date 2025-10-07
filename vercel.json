@@ -40,7 +40,7 @@
       }
     },
     {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|html))$",
+      "src": "/(.*\\.(css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|html))$",
       "dest": "/public/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000"
