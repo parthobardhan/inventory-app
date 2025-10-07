@@ -91,17 +91,8 @@ app.get('/manifest.json', (req, res) => {
   });
 });
 
-app.get('/sw.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Service-Worker-Allowed', '/');
-  res.setHeader('Cache-Control', 'public, max-age=0');
-  res.sendFile(path.join(__dirname, 'public', 'sw.js'), (err) => {
-    if (err) {
-      console.error('Error serving sw.js:', err);
-      res.status(404).send('// Service Worker not found');
-    }
-  });
-});
+// Service worker is now served directly by Vercel static file serving
+// app.get('/sw.js', ...) - removed, handled by vercel.json routing
 
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));

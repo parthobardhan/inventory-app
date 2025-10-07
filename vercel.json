@@ -1,27 +1,39 @@
 {
   "version": 2,
   "name": "textile-inventory-pwa",
+  "public": true,
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "/server.js"
     },
     {
-      "src": "/manifest.json",
-      "dest": "/server.js"
+      "src": "/sw.js",
+      "dest": "/public/sw.js",
+      "headers": {
+        "Content-Type": "application/javascript",
+        "Service-Worker-Allowed": "/",
+        "Cache-Control": "public, max-age=0"
+      }
     },
     {
-      "src": "/sw.js", 
-      "dest": "/server.js"
+      "src": "/manifest.json",
+      "dest": "/public/manifest.json",
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=31536000"
+      }
     },
     {
       "src": "/icons/(.*)",
+      "dest": "/public/icons/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000"
       }
     },
     {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|html))$",
+      "dest": "/public/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000"
       }
