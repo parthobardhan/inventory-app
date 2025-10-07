@@ -19,7 +19,7 @@ class InventoryManager {
         try {
             // Initialize IndexedDB
             await this.dbManager.init();
-            console.log('IndexedDB initialized successfully');
+            console.warn('IndexedDB initialized successfully');
             
             this.bindEvents();
             this.setupNetworkMonitoring();
@@ -48,19 +48,19 @@ class InventoryManager {
     }
 
     bindEvents() {
-        console.log('🔗 [CLIENT] Binding events...');
+        console.warn('🔗 [CLIENT] Binding events...');
         
         // Add product form
         const mainForm = document.getElementById('productForm');
         if (mainForm) {
-            console.log('✅ [CLIENT] Main form found, binding submit event');
+            console.warn('✅ [CLIENT] Main form found, binding submit event');
             mainForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                console.log('📝 [CLIENT] Main form submitted');
+                console.warn('📝 [CLIENT] Main form submitted');
                 this.addProduct();
             });
         } else {
-            console.log('⚠️ [CLIENT] Main form not found');
+            console.warn('⚠️ [CLIENT] Main form not found');
         }
 
         // Modal add product button - with error handling and duplicate prevention
@@ -70,22 +70,22 @@ class InventoryManager {
             const existingHandler = modalAddBtn._inventoryHandler;
             if (existingHandler) {
                 modalAddBtn.removeEventListener('click', existingHandler);
-                console.log('🔄 Removed existing modal button event listener');
+                console.warn('🔄 Removed existing modal button event listener');
             }
             
             // Create and attach new event listener
             const clickHandler = () => {
-                console.log('🖱️ [CLIENT] Modal Add Product button clicked');
-                console.log('🔍 [CLIENT] Button element:', modalAddBtn);
-                console.log('🔍 [CLIENT] Modal element exists:', !!document.getElementById('addProductModal'));
-                console.log('🔍 [CLIENT] Form element exists:', !!document.getElementById('modalProductForm'));
-                console.log('🔍 [CLIENT] Calling addProductFromModal...');
+                console.warn('🖱️ [CLIENT] Modal Add Product button clicked');
+                console.warn('🔍 [CLIENT] Button element:', modalAddBtn);
+                console.warn('🔍 [CLIENT] Modal element exists:', !!document.getElementById('addProductModal'));
+                console.warn('🔍 [CLIENT] Form element exists:', !!document.getElementById('modalProductForm'));
+                console.warn('🔍 [CLIENT] Calling addProductFromModal...');
                 this.addProductFromModal();
             };
             
             modalAddBtn.addEventListener('click', clickHandler);
             modalAddBtn._inventoryHandler = clickHandler; // Store reference for future cleanup
-            console.log('✅ Modal add product button event listener attached');
+            console.warn('✅ Modal add product button event listener attached');
         } else {
             console.error('❌ Modal add product button not found during event binding');
         }
@@ -98,6 +98,11 @@ class InventoryManager {
         // Filter by type
         document.getElementById('filterType').addEventListener('change', (e) => {
             this.filterProducts();
+        });
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', (e) => {
+            this.forceRefresh();
         });
 
         // Edit product modal save button
@@ -116,7 +121,7 @@ class InventoryManager {
             modalImageInput.addEventListener('change', (e) => {
                 this.handleModalImagePreview(e);
             });
-            console.log('✅ Modal image upload event listener attached');
+            console.warn('✅ Modal image upload event listener attached');
         } else {
             console.error('❌ Modal image input not found during event binding');
         }
@@ -136,7 +141,7 @@ class InventoryManager {
             modalEditTitleBtn.addEventListener('click', () => {
                 this.toggleEditMode('modalAiTitle', 'modalEditTitleBtn');
             });
-            console.log('✅ Modal edit title button event listener attached');
+            console.warn('✅ Modal edit title button event listener attached');
         } else {
             console.error('❌ Modal edit title button not found during event binding');
         }
@@ -146,7 +151,7 @@ class InventoryManager {
             modalEditDescBtn.addEventListener('click', () => {
                 this.toggleEditMode('modalAiDescription', 'modalEditDescBtn');
             });
-            console.log('✅ Modal edit description button event listener attached');
+            console.warn('✅ Modal edit description button event listener attached');
         } else {
             console.error('❌ Modal edit description button not found during event binding');
         }
@@ -214,20 +219,31 @@ class InventoryManager {
         
         try {
             this.syncInProgress = true;
+            console.warn('🔄 [CLIENT] Syncing with database...');
             const response = await fetch(this.apiBase);
             const result = await response.json();
             
             if (result.success) {
+                console.warn('✅ [CLIENT] Database sync successful, received', result.data.length, 'products');
                 this.products = result.data;
                 this.filteredProducts = [...this.products];
                 this.saveToCache(this.products);
+                
+                // Update IndexedDB with fresh data
+                try {
+                    await this.saveProductsToIndexedDB(this.products);
+                    console.warn('✅ [CLIENT] IndexedDB updated with fresh data');
+                } catch (indexedDBError) {
+                    console.warn('⚠️ [CLIENT] Failed to update IndexedDB:', indexedDBError);
+                }
+                
                 this.renderProducts();
                 await this.updateSummary();
             } else {
                 throw new Error(result.message || 'Failed to sync with database');
             }
         } catch (error) {
-            console.error('Error syncing with database:', error);
+            console.error('❌ [CLIENT] Error syncing with database:', error);
             if (!this.loadFromCache()) {
                 this.showAlert('Unable to sync with server: ' + error.message, 'danger');
             }
@@ -240,40 +256,45 @@ class InventoryManager {
         try {
             this.showLoading(true);
             
-            // Load from IndexedDB first for immediate display
-            try {
-                const indexedDBProducts = await this.dbManager.getAllProducts();
-                if (indexedDBProducts && indexedDBProducts.length > 0) {
-                    this.products = indexedDBProducts;
-                    this.filteredProducts = [...this.products];
-                    this.renderProducts(); // Show IndexedDB data immediately
-                    console.log('Products loaded from IndexedDB:', this.products.length);
-                }
-            } catch (dbError) {
-                console.warn('IndexedDB load failed, trying localStorage:', dbError);
+            // If online, prioritize database sync over local storage
+            if (this.isOnline && !this.syncInProgress) {
+                console.warn('🌐 [CLIENT] Online - syncing with database first');
+                await this.syncWithDatabase();
+            } else {
+                console.warn('📱 [CLIENT] Offline or sync in progress - loading from local storage');
                 
-                // Fallback to localStorage cache
-                const cachedData = this.loadFromCache();
-                if (cachedData) {
-                    this.products = cachedData;
-                    this.filteredProducts = [...this.products];
-                    this.renderProducts(); // Show cached data immediately
+                // Load from IndexedDB first for immediate display
+                try {
+                    const indexedDBProducts = await this.dbManager.getAllProducts();
+                    if (indexedDBProducts && indexedDBProducts.length > 0) {
+                        this.products = indexedDBProducts;
+                        this.filteredProducts = [...this.products];
+                        this.renderProducts(); // Show IndexedDB data immediately
+                        console.warn('Products loaded from IndexedDB:', this.products.length);
+                    }
+                } catch (dbError) {
+                    console.warn('IndexedDB load failed, trying localStorage:', dbError);
                     
-                    // Try to migrate to IndexedDB
-                    try {
-                        await this.saveProductsToIndexedDB(this.products);
-                        console.log('Migrated products to IndexedDB');
-                    } catch (migrationError) {
-                        console.warn('Failed to migrate to IndexedDB:', migrationError);
+                    // Fallback to localStorage cache
+                    const cachedData = this.loadFromCache();
+                    if (cachedData) {
+                        this.products = cachedData;
+                        this.filteredProducts = [...this.products];
+                        this.renderProducts(); // Show cached data immediately
+                        
+                        // Try to migrate to IndexedDB
+                        try {
+                            await this.saveProductsToIndexedDB(this.products);
+                            console.warn('Migrated products to IndexedDB');
+                        } catch (migrationError) {
+                            console.warn('Failed to migrate to IndexedDB:', migrationError);
+                        }
                     }
                 }
-            }
-            
-            // Then sync with database if online
-            if (this.isOnline && !this.syncInProgress) {
-                await this.syncWithDatabase();
-            } else if (!this.isOnline && this.products.length === 0) {
-                this.showAlert('You are offline. Please connect to the internet to load data.', 'warning');
+                
+                if (!this.isOnline && this.products.length === 0) {
+                    this.showAlert('You are offline. Please connect to the internet to load data.', 'warning');
+                }
             }
             
         } catch (error) {
@@ -340,7 +361,7 @@ class InventoryManager {
                         // Display AI content in preview if generated
                         if (imageResult && imageResult.aiGenerated) {
                             this.displayAIContent(imageResult.aiGenerated);
-                            console.log('AI content generated:', imageResult.aiGenerated);
+                            console.warn('AI content generated:', imageResult.aiGenerated);
 
                             // Use AI-generated title if available and user wants it
                             if (imageResult.aiGenerated.title && generateAI) {
@@ -391,8 +412,8 @@ class InventoryManager {
     }
 
     async addProductFromModal() {
-        console.log('🚀 [CLIENT] addProductFromModal() called');
-        console.log('🔍 [CLIENT] Getting form values...');
+        console.warn('🚀 [CLIENT] addProductFromModal() called');
+        console.warn('🔍 [CLIENT] Getting form values...');
         
         const name = document.getElementById('modalProductName').value.trim();
         const type = document.getElementById('modalProductType').value;
@@ -400,7 +421,7 @@ class InventoryManager {
         const price = parseFloat(document.getElementById('modalPrice').value);
         const description = document.getElementById('modalDescription').value.trim();
         
-        console.log('📝 [CLIENT] Form values extracted:', {
+        console.warn('📝 [CLIENT] Form values extracted:', {
             name: name,
             type: type,
             quantity: quantity,
@@ -416,11 +437,11 @@ class InventoryManager {
         }
 
         try {
-            console.log('⏳ [CLIENT] Showing loading state...');
+            console.warn('⏳ [CLIENT] Showing loading state...');
             this.showModalLoading(true);
 
             if (this.isOnline) {
-                console.log('🌐 [CLIENT] Online - making API request to:', this.apiBase);
+                console.warn('🌐 [CLIENT] Online - making API request to:', this.apiBase);
                 
                 const requestBody = {
                     name,
@@ -430,7 +451,7 @@ class InventoryManager {
                     description
                 };
                 
-                console.log('📤 [CLIENT] Request body:', JSON.stringify(requestBody, null, 2));
+                console.warn('📤 [CLIENT] Request body:', JSON.stringify(requestBody, null, 2));
                 
                 // Create the product first
                 const response = await fetch(this.apiBase, {
@@ -441,7 +462,7 @@ class InventoryManager {
                     body: JSON.stringify(requestBody)
                 });
 
-                console.log('📥 [CLIENT] Response received:', {
+                console.warn('📥 [CLIENT] Response received:', {
                     status: response.status,
                     statusText: response.statusText,
                     ok: response.ok,
@@ -449,34 +470,34 @@ class InventoryManager {
                 });
 
                 const result = await response.json();
-                console.log('📋 [CLIENT] Response body:', JSON.stringify(result, null, 2));
+                console.warn('📋 [CLIENT] Response body:', JSON.stringify(result, null, 2));
 
                 if (result.success) {
-                    console.log('✅ [CLIENT] Product created successfully:', result.data);
+                    console.warn('✅ [CLIENT] Product created successfully:', result.data);
                     const productId = result.data._id;
                     let finalName = name;
 
                     // Upload image if provided - AI content integration happens on backend
                     if (imageFile) {
-                        console.log('📸 [CLIENT] Image file provided, uploading...');
+                        console.warn('📸 [CLIENT] Image file provided, uploading...');
                         const imageResult = await this.uploadProductImage(productId, imageFile, generateAI);
 
                         // Display AI content in modal preview if generated
                         if (imageResult && imageResult.aiGenerated) {
-                            console.log('🤖 [CLIENT] AI content generated:', imageResult.aiGenerated);
+                            console.warn('🤖 [CLIENT] AI content generated:', imageResult.aiGenerated);
                             this.displayModalAIContent(imageResult.aiGenerated);
 
                             // Use AI-generated title if available and user wants it
                             if (imageResult.aiGenerated.title && generateAI) {
                                 finalName = imageResult.aiGenerated.title;
-                                console.log('🏷️ [CLIENT] Using AI-generated title:', finalName);
+                                console.warn('🏷️ [CLIENT] Using AI-generated title:', finalName);
                             }
                         }
                     } else {
-                        console.log('📸 [CLIENT] No image file provided');
+                        console.warn('📸 [CLIENT] No image file provided');
                     }
 
-                    console.log('🔄 [CLIENT] Reloading products and updating UI...');
+                    console.warn('🔄 [CLIENT] Reloading products and updating UI...');
                     // Reload products to get updated data from server
                     await this.loadProducts();
                     this.renderProducts();
@@ -485,18 +506,18 @@ class InventoryManager {
                     this.hideModalAIPreview();
                     
                     // Hide modal
-                    console.log('👋 [CLIENT] Hiding modal...');
+                    console.warn('👋 [CLIENT] Hiding modal...');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                     modal.hide();
                     
-                    console.log('🎉 [CLIENT] Showing success alert...');
+                    console.warn('🎉 [CLIENT] Showing success alert...');
                     this.showAlert(`Product "${finalName}" added successfully!`, 'success');
                 } else {
-                    console.log('❌ [CLIENT] API returned error:', result.message);
+                    console.warn('❌ [CLIENT] API returned error:', result.message);
                     throw new Error(result.message || 'Failed to add product');
                 }
             } else {
-                console.log('📱 [CLIENT] Offline mode - creating optimistic product');
+                console.warn('📱 [CLIENT] Offline mode - creating optimistic product');
                 // Offline mode - create optimistic product
                 const optimisticProduct = {
                     _id: 'temp_' + Date.now(),
@@ -511,7 +532,7 @@ class InventoryManager {
                     _isPending: true
                 };
 
-                console.log('💾 [CLIENT] Adding optimistic product to local storage:', optimisticProduct);
+                console.warn('💾 [CLIENT] Adding optimistic product to local storage:', optimisticProduct);
                 this.products.push(optimisticProduct);
                 this.filteredProducts = [...this.products];
                 this.saveToCache(this.products);
@@ -520,11 +541,11 @@ class InventoryManager {
                 this.clearModalForm();
                 
                 // Hide modal
-                console.log('👋 [CLIENT] Hiding modal (offline mode)...');
+                console.warn('👋 [CLIENT] Hiding modal (offline mode)...');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                 modal.hide();
                 
-                console.log('ℹ️ [CLIENT] Showing offline alert...');
+                console.warn('ℹ️ [CLIENT] Showing offline alert...');
                 this.showAlert(`Product "${name}" added locally. Will sync when online.`, 'info');
             }
         } catch (error) {
@@ -1112,37 +1133,68 @@ class InventoryManager {
             this.showAlert('Error exporting data: ' + error.message, 'danger');
         }
     }
+
+    // Force refresh data from database
+    async forceRefresh() {
+        try {
+            this.showLoading(true);
+            console.warn('🔄 [CLIENT] Force refreshing data from database...');
+            
+            // Clear local caches
+            try {
+                await this.dbManager.clearAllData();
+                console.warn('✅ [CLIENT] Cleared IndexedDB cache');
+            } catch (error) {
+                console.warn('⚠️ [CLIENT] Failed to clear IndexedDB:', error);
+            }
+            
+            // Clear localStorage cache
+            localStorage.removeItem(this.cacheKey);
+            localStorage.removeItem(this.lastSyncKey);
+            console.warn('✅ [CLIENT] Cleared localStorage cache');
+            
+            // Force sync with database
+            await this.syncWithDatabase();
+            
+            this.showAlert('Data refreshed successfully!', 'success');
+        } catch (error) {
+            console.error('❌ [CLIENT] Error force refreshing:', error);
+            this.showAlert('Error refreshing data: ' + error.message, 'danger');
+        } finally {
+            this.showLoading(false);
+        }
+    }
 }
 
 // Initialize the inventory manager when the page loads
 let inventoryManager;
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Initializing InventoryManager...');
+    console.warn('🚀 Initializing InventoryManager...');
     try {
         inventoryManager = new InventoryManager();
         
         // The constructor calls init() automatically, but we need to wait for it
         // Let's wait a bit longer for the async initialization to complete
-        console.log('⏳ Waiting for InventoryManager async initialization...');
+        console.warn('⏳ Waiting for InventoryManager async initialization...');
         
         // Wait for the init process to complete
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Make it globally available for debugging and modal access
         window.inventoryManager = inventoryManager;
-        console.log('✅ InventoryManager initialized and available globally');
-        console.log('✅ addProductFromModal method:', typeof inventoryManager.addProductFromModal);
+        console.warn('✅ InventoryManager initialized and available globally');
+        console.warn('✅ addProductFromModal method:', typeof inventoryManager.addProductFromModal);
         
         // Verify the method exists
         if (typeof inventoryManager.addProductFromModal === 'function') {
-            console.log('🎯 Modal functionality should work now!');
+            console.warn('🎯 Modal functionality should work now!');
             
             // Test that we can call the method (without actually executing it)
-            console.log('🧪 Testing method availability...');
-            console.log('Method signature:', inventoryManager.addProductFromModal.toString().substring(0, 100) + '...');
+            console.warn('🧪 Testing method availability...');
+            console.warn('Method signature:', inventoryManager.addProductFromModal.toString().substring(0, 100) + '...');
         } else {
             console.error('❌ addProductFromModal method not found on InventoryManager');
-            console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(inventoryManager)));
+            console.warn('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(inventoryManager)));
         }
         
     } catch (error) {

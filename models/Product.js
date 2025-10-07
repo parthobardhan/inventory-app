@@ -37,7 +37,7 @@ const productSchema = new mongoose.Schema({
   caption: {
     type: String,
     trim: true,
-    maxlength: [300, 'Caption cannot exceed 300 characters']
+    maxlength: [200, 'Caption cannot exceed 200 characters']
   },
   // Image metadata for AWS S3 storage
   images: [{

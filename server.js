@@ -104,28 +104,86 @@ app.use(express.static(path.join(__dirname, 'public')));
 // MongoDB connection
 const connectDB = async () => {
   try {
+    console.warn('🔗 [DB] Attempting to connect to MongoDB...');
+    console.warn('🌍 [DB] Environment:', process.env.NODE_ENV);
+    console.warn('🔑 [DB] MONGODB_URI configured:', !!process.env.MONGODB_URI);
+    
     if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('username:password')) {
-      console.warn('MONGODB_URI environment variable is not properly configured');
-      console.log('Running in development mode without database connection');
-      console.log('Frontend will be available but API endpoints will not work');
+      console.warn('❌ [DB] MONGODB_URI environment variable is not properly configured');
+      console.warn('⚠️ [DB] Running in development mode without database connection');
+      console.warn('⚠️ [DB] Frontend will be available but API endpoints will not work');
+      throw new Error('MongoDB URI not configured');
+    }
+
+    // Check if already connected
+    if (mongoose.connection.readyState === 1) {
+      console.warn('✅ [DB] Already connected to MongoDB');
       return;
     }
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // Increased timeout for serverless
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      maxPoolSize: 1, // Maintain up to 1 socket connection for serverless
+      minPoolSize: 0, // Allow connection pool to close all connections
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      connectTimeoutMS: 10000, // Connection timeout
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.warn(`✅ [DB] MongoDB Connected: ${conn.connection.host}`);
+    console.warn('✅ [DB] Database connection established successfully');
+    
+    // Handle connection events
+    mongoose.connection.on('error', (err) => {
+      console.error('💥 [DB] MongoDB connection error:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️ [DB] MongoDB disconnected');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.warn('✅ [DB] MongoDB reconnected');
+    });
+
   } catch (error) {
-    console.error('Database connection error:', error.message);
-    console.log('Running in development mode without database connection');
-    console.log('Frontend will be available but API endpoints will not work');
+    console.error('💥 [DB] Database connection error:', error.message);
+    console.error('💥 [DB] Error stack:', error.stack);
+    throw error; // Re-throw to prevent server startup
   }
 };
 
-// Connect to database
-connectDB();
+// Initialize database connection
+let dbConnected = false;
+let dbConnecting = false;
+
+const initDB = async () => {
+  if (dbConnected) {
+    return true;
+  }
+  
+  if (dbConnecting) {
+    // Wait for ongoing connection attempt
+    while (dbConnecting && !dbConnected) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return dbConnected;
+  }
+  
+  dbConnecting = true;
+  try {
+    await connectDB();
+    dbConnected = true;
+    console.warn('✅ [DB] Database connection established');
+    return true;
+  } catch (error) {
+    console.error('❌ [DB] Failed to connect to database:', error);
+    dbConnected = false;
+    return false;
+  } finally {
+    dbConnecting = false;
+  }
+};
 
 // Routes
 app.use('/api/products', productRoutes);
@@ -140,6 +198,7 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
+
 
 // Serve specific pages first (before catch-all)
 app.get('/coverz', (req, res) => {
@@ -178,6 +237,23 @@ app.use((error, req, res, next) => {
   });
 });
 
+// Initialize database on startup
+initDB();
+
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Frontend available at: http://localhost:${PORT}`);
+    console.log(`API available at: http://localhost:${PORT}/api`);
+  });
+}
+
+// Export the app and initDB function for Vercel
+module.exports = app;
+module.exports.initDB = initDB;
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
@@ -193,11 +269,4 @@ process.on('SIGINT', () => {
     console.log('MongoDB connection closed.');
     process.exit(0);
   });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Frontend available at: http://localhost:${PORT}`);
-  console.log(`API available at: http://localhost:${PORT}/api`);
 });

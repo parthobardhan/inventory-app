@@ -7,10 +7,13 @@ const HF_TIMEOUT_MS = parseInt(process.env.HF_TIMEOUT_MS || '20000', 10);
 const HF_MAX_RETRIES = parseInt(process.env.HF_MAX_RETRIES || '2', 10);
 const HF_BACKOFF_MS = parseInt(process.env.HF_BACKOFF_MS || '500', 10);
 
-// Initialize OpenAI client for production
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client for production (only if API key is available)
+let openai = null;
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -47,6 +50,14 @@ function getAIService(forceOpenAI = false) {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasOpenAIKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here';
   
+  console.log('🔍 AI SERVICE SELECTION DEBUG:');
+  console.log('   Environment:', process.env.NODE_ENV);
+  console.log('   Is Production:', isProduction);
+  console.log('   Has OpenAI Key:', !!process.env.OPENAI_API_KEY);
+  console.log('   OpenAI Key Length:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
+  console.log('   OpenAI Key Preview:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'undefined');
+  console.log('   Force OpenAI:', forceOpenAI);
+  
   // Force OpenAI mode for testing (local development)
   if (forceOpenAI && hasOpenAIKey) {
     console.log('🔧 FORCE OPENAI MODE: Using OpenAI for local testing');
@@ -54,9 +65,15 @@ function getAIService(forceOpenAI = false) {
   }
   
   if (isProduction && hasOpenAIKey) {
+    console.log('🚀 PRODUCTION MODE: Using OpenAI for production deployment');
     return 'openai';
   }
   
+  if (isProduction && !hasOpenAIKey) {
+    console.log('⚠️  PRODUCTION MODE: No OpenAI key found, falling back to Ollama (this will fail in Vercel)');
+  }
+  
+  console.log('🏠 DEVELOPMENT MODE: Using Ollama for local development');
   return 'ollama';
 }
 
@@ -70,6 +87,11 @@ async function generateProductDescriptionWithOpenAI(imageUrl, productType = null
   try {
     console.log(`🔍 ANALYZING IMAGE WITH OPENAI GPT-4O-MINI: ${imageUrl}`);
     console.log(`🏷️  PRODUCT TYPE: ${productType || 'Not specified'}`);
+
+    // Check if OpenAI client is available
+    if (!openai) {
+      throw new Error('OpenAI client not initialized - API key not configured');
+    }
 
     // Download image data
     console.log('📥 Downloading image...');
@@ -91,14 +113,15 @@ async function generateProductDescriptionWithOpenAI(imageUrl, productType = null
     const prompt = `You are an expert online seller specializing in textile products. The user has selected "${targetCategory}" as the product type. 
 
 Analyze this image and provide:
-1. A catchy, sales-focused caption (1-2 sentences, under 200 characters) that highlights the design, colors, comfort, and appeal of this ${targetCategory}
-2. A detailed product description that mentions materials, design elements, colors, and how it enhances the space/occasion
+1. A catchy, sales-focused caption (1-2 sentences, MAXIMUM 200 characters) that highlights the design, colors, comfort, and appeal of this ${targetCategory}
+2. A concise product description (under 400 characters) that mentions materials, design elements, colors, and how it enhances the space/occasion
 
-Focus specifically on this ${targetCategory} and do not describe anything else in the image. Make it appealing for online shoppers.
+IMPORTANT: The caption must be exactly 200 characters or less. Count your characters carefully.
+Focus specifically on this ${targetCategory} and do not describe anything else in the image. Make it appealing for online shoppers. Keep descriptions concise and impactful.
 
 Format your response as:
-CAPTION: [your catchy caption here]
-DESCRIPTION: [your detailed description here]`;
+CAPTION: [your catchy caption here - MAX 200 chars]
+DESCRIPTION: [your concise description here]`;
 
     console.log('🤖 Calling OpenAI GPT-4o-mini...');
     
@@ -136,13 +159,17 @@ DESCRIPTION: [your detailed description here]`;
     const caption = captionMatch ? captionMatch[1].trim() : content.split('\n')[0].trim();
     const description = descriptionMatch ? descriptionMatch[1].trim() : content;
 
+    // Truncate description to fit database constraints
+    const truncatedDescription = description.length > 500 ? 
+      description.substring(0, 497) + '...' : description;
+    
     const result = {
       title: generateProductTitle(caption, productType),
-      description: description,
+      description: truncatedDescription,
       confidence: 0.9, // OpenAI typically has higher confidence
       model: 'OpenAI GPT-4o-mini',
       generatedAt: new Date(),
-      rawCaption: caption
+      rawCaption: caption.length > 200 ? caption.substring(0, 197) + '...' : caption
     };
 
     console.log('🎉 OPENAI GENERATION COMPLETE!');
@@ -198,13 +225,19 @@ async function generateProductDescriptionWithOllama(imageUrl, productType = null
     const title = generateProductTitle(enhancedDescription, productType);
     console.log(`✅ Title generated: "${title}"`);
 
+    // Truncate description and caption to fit database constraints
+    const truncatedDescription = enhancedDescription.length > 500 ? 
+      enhancedDescription.substring(0, 497) + '...' : enhancedDescription;
+    const truncatedCaption = basicCaption.length > 200 ? 
+      basicCaption.substring(0, 197) + '...' : basicCaption;
+    
     const result = {
       title: title,
-      description: enhancedDescription,
+      description: truncatedDescription,
       confidence: 0.8,
       model: 'Local Ollama LLaVA',
       generatedAt: new Date(),
-      rawCaption: basicCaption
+      rawCaption: truncatedCaption
     };
 
     console.log('🎉 OLLAMA GENERATION COMPLETE!');
@@ -258,7 +291,10 @@ async function generateLLaVACaption(imageBuffer, productType) {
     const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
     const targetCategory = productType || 'textile product';
     
-    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy caption of one or two sentences that will be used in the product caption. The caption should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. Keep the caption under 200 characters. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
+    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy caption of one or two sentences that will be used in the product caption. The caption should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. 
+
+IMPORTANT: The caption must be MAXIMUM 200 characters. Count your characters carefully and ensure it's exactly 200 characters or less.
+You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions. Be concise and impactful.`;
 
     console.log(`📝 Using local LLaVA prompt for ${targetCategory}: "${userPrompt}"`);
 

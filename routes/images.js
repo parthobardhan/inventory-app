@@ -4,9 +4,53 @@ const { v4: uuidv4 } = require('uuid');
 const Product = require('../models/Product');
 const { upload, deleteFromS3, S3_BUCKET, getSignedUrl } = require('../config/aws');
 const { generateProductDescription } = require('../services/aiService');
+const mongoose = require('mongoose');
+
+// Middleware to check database connection
+const checkDBConnection = async (req, res, next) => {
+  try {
+    // In serverless environments, we need to establish connection on each request
+    if (mongoose.connection.readyState !== 1) {
+      console.warn('🔄 [DB] Establishing database connection for request...');
+      
+      // Try to establish connection directly
+      try {
+        if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('username:password')) {
+          throw new Error('MongoDB URI not configured');
+        }
+
+        await mongoose.connect(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          maxPoolSize: 1,
+          minPoolSize: 0,
+          maxIdleTimeMS: 30000,
+          connectTimeoutMS: 5000,
+        });
+        
+        console.warn('✅ [DB] Database connection established for request');
+      } catch (error) {
+        console.error('❌ [DB] Failed to connect to database:', error.message);
+        return res.status(503).json({
+          success: false,
+          message: 'Database connection not available',
+          error: 'Service temporarily unavailable'
+        });
+      }
+    }
+    next();
+  } catch (error) {
+    console.error('Database connection check failed:', error);
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection not available',
+      error: 'Service temporarily unavailable'
+    });
+  }
+};
 
 // POST /api/images/upload/:productId - Upload image for a product
-router.post('/upload/:productId', upload.single('image'), async (req, res) => {
+router.post('/upload/:productId', checkDBConnection, upload.single('image'), async (req, res) => {
   try {
     const { productId } = req.params;
     const { generateAI = 'true' } = req.body;
