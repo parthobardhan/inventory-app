@@ -23,10 +23,12 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
 - **Image upload** with AI-powered descriptions
 
 ### 🤖 AI Integration
-- **Automatic product descriptions** using Hugging Face AI
-- **Image analysis** for product categorization
+- **Dual AI Service Support**: OpenAI GPT-4o-mini (production) and Ollama LLaVA (development)
+- **Automatic product descriptions** using advanced vision-language models
+- **Image analysis** for product categorization and description generation
 - **Smart title generation** from product images
 - **Confidence scoring** for AI-generated content
+- **Environment-aware service selection** (production vs development)
 
 ### 📊 Analytics Dashboard
 - **Interactive charts** showing inventory distribution
@@ -71,6 +73,7 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
 - Node.js 18+ 
 - MongoDB database
 - Git
+- OpenAI API key (for production) or Ollama (for development)
 
 ### Local Development
 
@@ -91,15 +94,57 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
    # Edit dev.env with your configuration
    ```
 
-4. **Start the development server**
+4. **AI Service Setup**
+   
+   **For Development (Local):**
+   ```bash
+   # Install Ollama
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Pull LLaVA model
+   ollama pull llava:7b
+   ```
+
+   **For Production:**
+   ```bash
+   # Set OpenAI API key in dev.env
+   OPENAI_API_KEY=your-openai-api-key-here
+   NODE_ENV=production
+   ```
+
+5. **Start the development server**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**
+6. **Open your browser**
    ```
    http://localhost:3000
    ```
+
+### 🚀 Production Deployment
+
+For production deployment with OpenAI GPT-4o-mini, see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for detailed instructions.
+
+### 🧪 Testing AI Services
+
+#### Quick Tests
+```bash
+# Test automatic service selection
+npm run test:ai
+
+# Test OpenAI in local development
+npm run test:ai:openai
+
+# Interactive CLI testing
+npm run test:ai:cli openai ~/Downloads/bedcover.jpg
+```
+
+#### Available Test Commands
+- `npm run test:ai` - Test with automatic service selection
+- `npm run test:ai:openai` - Force OpenAI mode for local testing
+- `npm run test:ai:force` - Alternative OpenAI force mode
+- `npm run test:ai:cli` - Interactive CLI with multiple options
 
 ### Environment Variables
 
@@ -115,6 +160,9 @@ NODE_ENV=development
 
 # AI Services (Optional)
 HUGGINGFACE_API_KEY=your_huggingface_api_key
+
+# OpenAI Configuration (for production deployment)
+OPENAI_API_KEY=your_openai_api_key_here
 
 # AWS S3 (Optional)
 AWS_ACCESS_KEY_ID=your_aws_access_key

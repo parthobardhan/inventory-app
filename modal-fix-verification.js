@@ -39,3 +39,4 @@ console.log('   All event listeners are properly bound with error handling.');
 console.log('   InventoryManager is globally accessible.');
 console.log('   Debug information is available in browser console.');
 
+

@@ -1,10 +1,16 @@
 const { HfInference } = require('@huggingface/inference');
 const axios = require('axios');
 const { Ollama } = require('ollama');
+const OpenAI = require('openai');
 
 const HF_TIMEOUT_MS = parseInt(process.env.HF_TIMEOUT_MS || '20000', 10);
 const HF_MAX_RETRIES = parseInt(process.env.HF_MAX_RETRIES || '2', 10);
 const HF_BACKOFF_MS = parseInt(process.env.HF_BACKOFF_MS || '500', 10);
+
+// Initialize OpenAI client for production
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -32,115 +38,37 @@ async function withRetries(fn, maxRetries = HF_MAX_RETRIES, backoffMs = HF_BACKO
   throw lastErr;
 }
 
-async function hfRestLLaVAChat(modelId, imageBuffer, prompt, token) {
-  const url = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
+/**
+ * Determine which AI service to use based on environment
+ * @param {boolean} forceOpenAI - Force OpenAI mode for testing (optional)
+ * @returns {string} 'openai' for production, 'ollama' for development
+ */
+function getAIService(forceOpenAI = false) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const hasOpenAIKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here';
   
-  // Convert image buffer to base64
-  const base64Image = imageBuffer.toString('base64');
-  
-  // Try different request formats for LLaVA models
-  const requestFormats = [
-    // Format 1: Standard conversational format
-    {
-      inputs: {
-        image: base64Image,
-        text: prompt
-      },
-      parameters: {
-        max_new_tokens: 200,
-        temperature: 0.7,
-        do_sample: true
-      }
-    },
-    // Format 2: Simplified format
-    {
-      inputs: prompt,
-      image: base64Image,
-      parameters: {
-        max_new_tokens: 200
-      }
-    },
-    // Format 3: Direct inputs format
-    {
-      inputs: {
-        text: prompt,
-        images: [base64Image]
-      }
-    }
-  ];
-
-  let lastError;
-  
-  // Try each format until one works
-  for (let i = 0; i < requestFormats.length; i++) {
-    try {
-      console.log(`🔄 Trying LLaVA request format ${i + 1}...`);
-      console.log(`🔍 Request URL: ${url}`);
-      console.log(`🔍 Request payload (preview):`, JSON.stringify(requestFormats[i], null, 2).substring(0, 500) + '...');
-      
-      const res = await axios.post(
-        url,
-        requestFormats[i],
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: HF_TIMEOUT_MS,
-          validateStatus: () => true
-        }
-      );
-      
-      const status = res.status;
-      const data = res.data;
-      
-      console.log(`🔍 Response status: ${status}`);
-      console.log(`🔍 Response data:`, JSON.stringify(data, null, 2).substring(0, 1000));
-      
-      if (status >= 200 && status < 300) {
-        console.log(`✅ LLaVA request format ${i + 1} succeeded`);
-        return data;
-      }
-      
-      lastError = new Error(typeof data === 'string' ? data : JSON.stringify(data));
-      lastError.status = status;
-      console.log(`⚠️  LLaVA request format ${i + 1} got status ${status}: ${lastError.message}`);
-      
-    } catch (error) {
-      lastError = error;
-      console.log(`❌ LLaVA request format ${i + 1} failed: ${error.message}`);
-    }
+  // Force OpenAI mode for testing (local development)
+  if (forceOpenAI && hasOpenAIKey) {
+    console.log('🔧 FORCE OPENAI MODE: Using OpenAI for local testing');
+    return 'openai';
   }
   
-  // If all formats failed, throw the last error
-  throw lastError;
+  if (isProduction && hasOpenAIKey) {
+    return 'openai';
+  }
+  
+  return 'ollama';
 }
 
-// Initialize Hugging Face Inference API
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
-
-// Available models for image-to-text generation
-const MODELS = {
-  LLAVA_1_5_7B: 'llava-hf/llava-1.5-7b-hf', // Primary LLaVA model
-  LLAVA_1_5_13B: 'llava-hf/llava-1.5-13b-hf', // Larger LLaVA model
-  LLAVA_V1_6_MISTRAL: 'llava-hf/llava-v1.6-mistral-7b-hf', // Latest LLaVA model
-  GIT_BASE: 'microsoft/git-base', // Reliable fallback vision model
-  BLIP_BASE: 'Salesforce/blip-image-captioning-base' // Another fallback option
-};
-
-// Default models to use - LLaVA for better vision-language understanding
-const DEFAULT_CAPTIONING_MODEL = MODELS.LLAVA_1_5_7B; // Primary choice
-const FALLBACK_VISION_MODEL = MODELS.GIT_BASE; // Reliable fallback
-
 /**
- * Generate product title and description from image using LLaVA
+ * Generate product title and description from image using OpenAI GPT-4o-mini (production)
  * @param {string} imageUrl - URL of the image to analyze
  * @param {string} productType - Type of textile product (optional context)
  * @returns {Object} Generated title, description, confidence, and model info
  */
-async function generateProductDescription(imageUrl, productType = null) {
+async function generateProductDescriptionWithOpenAI(imageUrl, productType = null) {
   try {
-    console.log(`🔍 ANALYZING IMAGE: ${imageUrl}`);
+    console.log(`🔍 ANALYZING IMAGE WITH OPENAI GPT-4O-MINI: ${imageUrl}`);
     console.log(`🏷️  PRODUCT TYPE: ${productType || 'Not specified'}`);
 
     // Download image data
@@ -153,53 +81,166 @@ async function generateProductDescription(imageUrl, productType = null) {
     const imageBuffer = Buffer.from(imageResponse.data);
     console.log(`✅ Image downloaded: ${imageBuffer.length} bytes`);
 
-    // Step 1: Use LLaVA to generate detailed caption
-    console.log('📝 Step 1: Running LLaVA image captioning...');
-
-    let basicCaption;
-    let usedModel = 'LLaVA';
+    // Convert to base64 for OpenAI
+    const base64Image = imageBuffer.toString('base64');
     
-    basicCaption = await generateLLaVACaption(imageBuffer, productType);
+    // Create product-specific prompt
+    const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
+    const targetCategory = productType || 'textile product';
+    
+    const prompt = `You are an expert online seller specializing in textile products. The user has selected "${targetCategory}" as the product type. 
+
+Analyze this image and provide:
+1. A catchy, sales-focused caption (1-2 sentences, under 200 characters) that highlights the design, colors, comfort, and appeal of this ${targetCategory}
+2. A detailed product description that mentions materials, design elements, colors, and how it enhances the space/occasion
+
+Focus specifically on this ${targetCategory} and do not describe anything else in the image. Make it appealing for online shoppers.
+
+Format your response as:
+CAPTION: [your catchy caption here]
+DESCRIPTION: [your detailed description here]`;
+
+    console.log('🤖 Calling OpenAI GPT-4o-mini...');
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    });
+
+    const content = response.choices[0].message.content;
+    console.log('🔍 OpenAI raw response:', content);
+
+    // Parse the response
+    const captionMatch = content.match(/CAPTION:\s*(.+?)(?=DESCRIPTION:|$)/s);
+    const descriptionMatch = content.match(/DESCRIPTION:\s*(.+?)$/s);
+
+    const caption = captionMatch ? captionMatch[1].trim() : content.split('\n')[0].trim();
+    const description = descriptionMatch ? descriptionMatch[1].trim() : content;
+
+    const result = {
+      title: generateProductTitle(caption, productType),
+      description: description,
+      confidence: 0.9, // OpenAI typically has higher confidence
+      model: 'OpenAI GPT-4o-mini',
+      generatedAt: new Date(),
+      rawCaption: caption
+    };
+
+    console.log('🎉 OPENAI GENERATION COMPLETE!');
+    console.log('📊 FINAL RESULTS:');
+    console.log(`   📝 Title: "${result.title}"`);
+    console.log(`   📄 Description: "${result.description}"`);
+    console.log(`   🎯 Confidence: ${Math.round(result.confidence * 100)}%`);
+    console.log(`   🤖 Model: ${result.model}`);
+
+    return result;
+
+  } catch (error) {
+    console.error('❌ OPENAI GENERATION FAILED!');
+    console.error('🚨 Error Details:', error.message);
+    console.error('📍 Error Type:', error.name);
+    console.error('❌ Full error stack:', error.stack);
+
+    throw error;
+  }
+}
+
+/**
+ * Generate product title and description from image using Ollama LLaVA (local development)
+ * @param {string} imageUrl - URL of the image to analyze
+ * @param {string} productType - Type of textile product (optional context)
+ * @returns {Object} Generated title, description, confidence, and model info
+ */
+async function generateProductDescriptionWithOllama(imageUrl, productType = null) {
+  try {
+    console.log(`🔍 ANALYZING IMAGE WITH LOCAL OLLAMA LLAVA: ${imageUrl}`);
+    console.log(`🏷️  PRODUCT TYPE: ${productType || 'Not specified'}`);
+
+    // Download image data
+    console.log('📥 Downloading image...');
+    const imageResponse = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+
+    const imageBuffer = Buffer.from(imageResponse.data);
+    console.log(`✅ Image downloaded: ${imageBuffer.length} bytes`);
+
+    // Generate caption using Ollama LLaVA
+    console.log('📝 Running Ollama LLaVA image captioning...');
+    const basicCaption = await generateLLaVACaption(imageBuffer, productType);
     console.log(`✅ LLaVA completed - Caption: "${basicCaption}"`);
 
-    console.log(`🔗 Processing LLaVA results...`);
-
-    // Step 2: Enhance the description with product-specific details
+    // Enhance the description with product-specific details
     const enhancedDescription = enhanceTextileDescription(basicCaption, productType);
 
-    // Step 3: Generate a product title from the enhanced description
-    console.log('🏷️  Step 3: Generating product title...');
+    // Generate a product title from the enhanced description
+    console.log('🏷️  Generating product title...');
     const title = generateProductTitle(enhancedDescription, productType);
     console.log(`✅ Title generated: "${title}"`);
 
-    const finalResult = {
+    const result = {
       title: title,
       description: enhancedDescription,
       confidence: 0.8,
-      model: usedModel,
+      model: 'Local Ollama LLaVA',
       generatedAt: new Date(),
       rawCaption: basicCaption
     };
 
-    console.log('🎉 AI GENERATION COMPLETE!');
+    console.log('🎉 OLLAMA GENERATION COMPLETE!');
     console.log('📊 FINAL RESULTS:');
-    console.log(`   📝 Title: "${finalResult.title}"`);
-    console.log(`   📄 Description: "${finalResult.description}"`);
-    console.log(`   🎯 Confidence: ${Math.round(finalResult.confidence * 100)}%`);
-    console.log(`   🤖 Model: ${finalResult.model}`);
+    console.log(`   📝 Title: "${result.title}"`);
+    console.log(`   📄 Description: "${result.description}"`);
+    console.log(`   🎯 Confidence: ${Math.round(result.confidence * 100)}%`);
+    console.log(`   🤖 Model: ${result.model}`);
 
-    return finalResult;
-    
+    return result;
+
   } catch (error) {
-    console.error('❌ AI GENERATION FAILED!');
+    console.error('❌ OLLAMA GENERATION FAILED!');
     console.error('🚨 Error Details:', error.message);
     console.error('📍 Error Type:', error.name);
     console.error('❌ Full error stack:', error.stack);
-    console.error('❌ Error response:', error.response?.data);
 
-    // No fallback - require LLM generation
-    console.log('❌ LLM caption generation failed - no fallback available');
     throw error;
+  }
+}
+
+/**
+ * Main function to generate product description - automatically chooses service based on environment
+ * @param {string} imageUrl - URL of the image to analyze
+ * @param {string} productType - Type of textile product (optional context)
+ * @param {boolean} forceOpenAI - Force OpenAI mode for testing (optional)
+ * @returns {Object} Generated title, description, confidence, and model info
+ */
+async function generateProductDescription(imageUrl, productType = null, forceOpenAI = false) {
+  const aiService = getAIService(forceOpenAI);
+  console.log(`🤖 Using AI service: ${aiService.toUpperCase()}`);
+  
+  if (aiService === 'openai') {
+    return await generateProductDescriptionWithOpenAI(imageUrl, productType);
+  } else {
+    return await generateProductDescriptionWithOllama(imageUrl, productType);
   }
 }
 
@@ -214,7 +255,6 @@ async function generateLLaVACaption(imageBuffer, productType) {
     console.log('🎯 LLaVA: Attempting LOCAL Ollama vision-language captioning...');
 
     // Create catchy product description prompt for online selling
-    // Use the selected product type to focus the AI on the correct category
     const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
     const targetCategory = productType || 'textile product';
     
@@ -271,39 +311,6 @@ async function generateLLaVACaption(imageBuffer, productType) {
 }
 
 /**
- * Enhance a basic caption from LLaVA with minimal processing
- * @param {string} basicCaption - Basic caption from LLaVA
- * @param {string} productType - Product type
- * @returns {string} Enhanced caption
- */
-function enhanceCaptionWithInstructions(basicCaption, productType) {
-  // Minimal enhancement - just ensure proper capitalization and product type context
-  let enhanced = basicCaption.trim();
-
-  // Ensure proper capitalization
-  enhanced = enhanced.charAt(0).toUpperCase() + enhanced.slice(1);
-
-  // Add product type context if not already present
-  if (productType) {
-    const typeMap = {
-      'bed-covers': 'bed cover',
-      'cushion-covers': 'cushion cover',
-      'sarees': 'saree',
-      'towels': 'towel'
-    };
-
-    const typeName = typeMap[productType];
-    if (typeName && !enhanced.toLowerCase().includes(typeName)) {
-      enhanced = `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} ${enhanced.toLowerCase()}`;
-    }
-  }
-
-  return enhanced;
-}
-
-
-
-/**
  * Enhance textile description with product-specific details
  * @param {string} caption - Basic caption from LLaVA
  * @param {string} productType - Product type for context
@@ -336,14 +343,8 @@ function enhanceTextileDescription(caption, productType) {
   return enhanced.charAt(0).toUpperCase() + enhanced.slice(1);
 }
 
-
-
-
-
-
-
 /**
- * Generate product title using LLaVA insights
+ * Generate product title using insights
  * @param {string} description - Enhanced product description
  * @param {string} productType - Product type
  * @returns {string} Generated title
@@ -380,96 +381,28 @@ function generateProductTitle(description, productType) {
   return title;
 }
 
-
-
 /**
  * Test AI service with a sample image
  * @param {string} imageUrl - Test image URL
+ * @param {boolean} forceOpenAI - Force OpenAI mode for testing (optional)
  * @returns {Object} Test results
  */
-async function testAIService(imageUrl) {
-  console.log('Testing LLaVA AI service...');
-  const result = await generateProductDescription(imageUrl, 'bed-covers');
+async function testAIService(imageUrl, forceOpenAI = false) {
+  console.log('Testing AI service...');
+  const result = await generateProductDescription(imageUrl, 'bed-covers', forceOpenAI);
   console.log('Test result:', result);
   return result;
 }
 
 /**
- * Generate caption using LOCAL Ollama LLaVA model (no fallback) for testing
- * @param {Buffer} imageBuffer - Image data buffer
- * @param {string} productType - Type of textile product for context
- * @returns {string} Generated caption from local LLaVA only
- */
-async function generateLLaVACaptionOnly(imageBuffer, productType) {
-  try {
-    console.log('🎯 LLaVA-ONLY: Testing LOCAL Ollama LLaVA without fallback...');
-
-    // Create catchy product description prompt for online selling
-    // Use the selected product type to focus the AI on the correct category
-    const availableCategories = ['bed-covers', 'cushion-covers', 'sarees', 'towels'];
-    const targetCategory = productType || 'textile product';
-    
-    const userPrompt = `You are an online seller for products in these categories: bed-covers, cushion covers, sarees, and towels. The user has selected "${targetCategory}" as the product type. Focus specifically on this ${targetCategory} and generate a catchy caption of one or two sentences that will be used in the product caption. The caption should mention design, colors, comfort and any other elements that stand out in this ${targetCategory}. Do not describe anything else in the image outside of the main product. Keep the caption under 200 characters. You can mention how the product will enhance where it will be used, eg. a bed-cover will brighten up the bedroom, a saree will add elegance to special occasions.`;
-
-    console.log(`📝 Using local LLaVA prompt for ${targetCategory}: "${userPrompt}"`);
-
-    // Convert image buffer to base64 for Ollama
-    const base64Image = imageBuffer.toString('base64');
-    console.log(`🖼️  Image converted to base64 (${base64Image.length} chars)`);
-
-    console.log('🔄 Using LOCAL Ollama LLaVA model...');
-    
-    // Use Ollama local LLaVA model
-    // Create Ollama client and make the request
-    const ollamaClient = new Ollama();
-    const response = await ollamaClient.chat({
-      model: 'llava:7b',
-      messages: [{
-        role: 'user',
-        content: userPrompt,
-        images: [base64Image]
-      }],
-      options: {
-        temperature: 0.7,
-        num_ctx: 4096
-      }
-    });
-
-    console.log('🔍 Ollama raw response:', JSON.stringify(response, null, 2));
-
-    // Extract the caption from Ollama response
-    let caption = '';
-    if (response && response.message && response.message.content) {
-      caption = response.message.content.trim();
-    } else {
-      throw new Error('Ollama LLaVA returned invalid response structure');
-    }
-
-    if (!caption) {
-      throw new Error('Ollama LLaVA model returned empty response - NO FALLBACK USED');
-    }
-
-    // Minimal processing for catchy descriptions - remove quotes and ensure proper capitalization
-    caption = caption.replace(/^["']|["']$/g, '').trim(); // Remove leading/trailing quotes
-    caption = caption.charAt(0).toUpperCase() + caption.slice(1);
-    console.log(`✅ Local LLaVA caption processed: "${caption}"`);
-
-    return caption;
-
-  } catch (error) {
-    console.error('❌ LOCAL LLaVA caption generation failed (no fallback used):', error.message);
-    throw new Error(`Local LLaVA test failed: ${error.message}`);
-  }
-}
-
-/**
- * Test LOCAL Ollama LLaVA models with a specific image file (no fallback allowed)
+ * Test AI service with a local image file
  * @param {string} imagePath - Path to the test image file
  * @param {string} productType - Type of product for context
- * @returns {Object} Test results from local LLaVA only
+ * @param {boolean} forceOpenAI - Force OpenAI mode for testing (optional)
+ * @returns {Object} Test results
  */
-async function testLLaVAOnly(imagePath, productType = 'bed-covers') {
-  console.log('🧪 TESTING LOCAL OLLAMA LLAVA MODELS ONLY - NO FALLBACK ALLOWED');
+async function testAIServiceWithFile(imagePath, productType = 'bed-covers', forceOpenAI = false) {
+  console.log('🧪 TESTING AI SERVICE WITH LOCAL IMAGE FILE');
   console.log(`📁 Image path: ${imagePath}`);
   console.log(`🏷️  Product type: ${productType}`);
   
@@ -494,37 +427,38 @@ async function testLLaVAOnly(imagePath, productType = 'bed-covers') {
     const imageBuffer = fs.readFileSync(resolvedPath);
     console.log(`✅ Image loaded: ${imageBuffer.length} bytes`);
     
-    // Test LOCAL LLaVA caption generation (no fallback)
-    const caption = await generateLLaVACaptionOnly(imageBuffer, productType);
+    // Convert to base64 data URL for testing
+    const base64Image = imageBuffer.toString('base64');
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
     
-    const result = {
+    // Test AI service
+    const result = await generateProductDescription(dataUrl, productType, forceOpenAI);
+    
+    console.log('🎉 AI SERVICE TEST COMPLETED SUCCESSFULLY!');
+    console.log('📊 TEST RESULTS:');
+    console.log(`   📁 Image: ${resolvedPath}`);
+    console.log(`   🏷️  Type: ${result.productType || productType}`);
+    console.log(`   📝 Title: "${result.title}"`);
+    console.log(`   📄 Description: "${result.description}"`);
+    console.log(`   🎯 Confidence: ${Math.round((result.confidence || 0) * 100)}%`);
+    console.log(`   🤖 Model: ${result.model}`);
+    
+    return {
       imagePath: resolvedPath,
       productType: productType,
-      caption: caption,
-      model: 'Local Ollama LLaVA',
+      ...result,
       success: true,
       testedAt: new Date()
     };
     
-    console.log('🎉 LOCAL LLAVA TEST COMPLETED SUCCESSFULLY!');
-    console.log('📊 TEST RESULTS:');
-    console.log(`   📁 Image: ${result.imagePath}`);
-    console.log(`   🏷️  Type: ${result.productType}`);
-    console.log(`   📝 Caption: "${result.caption}"`);
-    console.log(`   🤖 Model: ${result.model}`);
-    
-    return result;
-    
   } catch (error) {
-    console.error('❌ LOCAL LLAVA TEST FAILED!');
+    console.error('❌ AI SERVICE TEST FAILED!');
     console.error('🚨 Error Details:', error.message);
     console.error('📍 Error Type:', error.name);
     
     const result = {
       imagePath: imagePath,
       productType: productType,
-      caption: null,
-      model: 'Local Ollama LLaVA',
       success: false,
       error: error.message,
       testedAt: new Date()
@@ -550,11 +484,22 @@ async function testHuggingFaceAPI() {
   }
 }
 
+// Available models for image-to-text generation (legacy support)
+const MODELS = {
+  LLAVA_1_5_7B: 'llava-hf/llava-1.5-7b-hf',
+  LLAVA_1_5_13B: 'llava-hf/llava-1.5-13b-hf',
+  LLAVA_V1_6_MISTRAL: 'llava-hf/llava-v1.6-mistral-7b-hf',
+  GIT_BASE: 'microsoft/git-base',
+  BLIP_BASE: 'Salesforce/blip-image-captioning-base'
+};
+
 module.exports = {
   generateProductDescription,
+  generateProductDescriptionWithOpenAI,
+  generateProductDescriptionWithOllama,
   testAIService,
+  testAIServiceWithFile,
   testHuggingFaceAPI,
-  testLLaVAOnly,
-  generateLLaVACaptionOnly,
+  getAIService,
   MODELS
 };
