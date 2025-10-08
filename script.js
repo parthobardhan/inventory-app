@@ -9,18 +9,26 @@ class InventoryManager {
     }
 
     async init() {
+        console.log('🚀 Initializing InventoryManager...');
         this.bindEvents();
         await this.loadProducts();
         this.renderProducts();
         this.updateSummary();
+        console.log('✅ InventoryManager initialized successfully');
     }
 
     bindEvents() {
+        console.log('🔗 Binding events...');
+        
         // Add product form
-        document.getElementById('productForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.addProduct();
-        });
+        const mainForm = document.getElementById('productForm');
+        if (mainForm) {
+            mainForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('📝 Main form submitted');
+                this.addProduct();
+            });
+        }
 
         // Search functionality - real-time search on input
         document.getElementById('searchInput').addEventListener('input', (e) => {
@@ -49,10 +57,35 @@ class InventoryManager {
             this.saveEditedProduct();
         });
 
-        // Add product modal button
-        document.getElementById('addProductBtn').addEventListener('click', () => {
-            this.addProductFromModal();
-        });
+        // Add product modal button - FIXED IMPLEMENTATION
+        const modalAddBtn = document.getElementById('addProductBtn');
+        if (modalAddBtn) {
+            console.log('✅ Modal button found, attaching event listener');
+            
+            // Remove any existing event listeners to prevent duplicates
+            const existingHandler = modalAddBtn._inventoryHandler;
+            if (existingHandler) {
+                modalAddBtn.removeEventListener('click', existingHandler);
+                console.log('🔄 Removed existing modal button event listener');
+            }
+            
+            // Create and attach new event listener
+            const clickHandler = (e) => {
+                e.preventDefault();
+                console.log('🖱️ Modal Add Product button clicked');
+                console.log('🔍 Button element:', modalAddBtn);
+                console.log('🔍 Modal element exists:', !!document.getElementById('addProductModal'));
+                console.log('🔍 Form element exists:', !!document.getElementById('modalProductForm'));
+                console.log('🔍 Calling addProductFromModal...');
+                this.addProductFromModal();
+            };
+            
+            modalAddBtn.addEventListener('click', clickHandler);
+            modalAddBtn._inventoryHandler = clickHandler; // Store reference for future cleanup
+            console.log('✅ Modal add product button event listener attached');
+        } else {
+            console.error('❌ Modal add product button not found during event binding');
+        }
 
         // Image upload functionality
         document.getElementById('productImage').addEventListener('change', (e) => {
@@ -87,6 +120,106 @@ class InventoryManager {
                 this.deleteProduct(productId);
             }
         });
+
+        // Modal form validation on input change
+        this.setupModalValidation();
+    }
+
+    setupModalValidation() {
+        const modalForm = document.getElementById('modalProductForm');
+        if (!modalForm) return;
+
+        const requiredFields = ['modalProductName', 'modalProductType', 'modalQuantity', 'modalPrice'];
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('blur', () => {
+                    this.validateModalField(fieldId);
+                });
+                
+                field.addEventListener('input', () => {
+                    // Clear validation error on input
+                    this.clearFieldError(fieldId);
+                });
+            }
+        });
+    }
+
+    validateModalField(fieldId) {
+        const field = document.getElementById(fieldId);
+        const errorElement = document.getElementById(fieldId + 'Error');
+        
+        if (!field || !errorElement) return true;
+
+        let isValid = true;
+        let errorMessage = '';
+
+        switch (fieldId) {
+            case 'modalProductName':
+                if (!field.value.trim()) {
+                    isValid = false;
+                    errorMessage = 'Product name is required';
+                } else if (field.value.trim().length < 2) {
+                    isValid = false;
+                    errorMessage = 'Product name must be at least 2 characters';
+                }
+                break;
+                
+            case 'modalProductType':
+                if (!field.value) {
+                    isValid = false;
+                    errorMessage = 'Please select a product type';
+                }
+                break;
+                
+            case 'modalQuantity':
+                const quantity = parseInt(field.value);
+                if (isNaN(quantity) || quantity < 0) {
+                    isValid = false;
+                    errorMessage = 'Quantity must be a valid number (0 or greater)';
+                }
+                break;
+                
+            case 'modalPrice':
+                const price = parseFloat(field.value);
+                if (isNaN(price) || price < 0) {
+                    isValid = false;
+                    errorMessage = 'Price must be a valid number (0 or greater)';
+                }
+                break;
+        }
+
+        if (!isValid) {
+            field.classList.add('is-invalid');
+            errorElement.textContent = errorMessage;
+        } else {
+            field.classList.remove('is-invalid');
+            errorElement.textContent = '';
+        }
+
+        return isValid;
+    }
+
+    clearFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        const errorElement = document.getElementById(fieldId + 'Error');
+        
+        if (field) field.classList.remove('is-invalid');
+        if (errorElement) errorElement.textContent = '';
+    }
+
+    validateModalForm() {
+        const requiredFields = ['modalProductName', 'modalProductType', 'modalQuantity', 'modalPrice'];
+        let isValid = true;
+
+        requiredFields.forEach(fieldId => {
+            if (!this.validateModalField(fieldId)) {
+                isValid = false;
+            }
+        });
+
+        return isValid;
     }
 
     // API Methods
@@ -349,6 +482,17 @@ class InventoryManager {
     }
 
     async addProductFromModal() {
+        console.log('🚀 addProductFromModal() called');
+        
+        // Validate form first
+        if (!this.validateModalForm()) {
+            console.log('❌ Modal form validation failed');
+            this.showAlert('Please fix the validation errors before submitting.', 'danger');
+            return;
+        }
+
+        console.log('🔍 Getting form values...');
+        
         const name = document.getElementById('modalProductName').value.trim();
         const type = document.getElementById('modalProductType').value;
         const quantity = parseInt(document.getElementById('modalQuantity').value);
@@ -356,21 +500,38 @@ class InventoryManager {
         const description = document.getElementById('modalDescription').value.trim();
         const imageFile = document.getElementById('modalProductImage').files[0];
         const generateAI = document.getElementById('modalGenerateAI').checked;
+        
+        console.log('📝 Form values extracted:', {
+            name: name,
+            type: type,
+            quantity: quantity,
+            price: price,
+            description: description ? description.substring(0, 50) + '...' : 'none',
+            hasImage: !!imageFile,
+            generateAI: generateAI
+        });
 
-        if (!name || !type || quantity < 0 || price < 0) {
+        // Additional validation
+        if (!name || !type || isNaN(quantity) || isNaN(price) || quantity < 0 || price < 0) {
+            console.log('❌ Additional validation failed');
             this.showAlert('Please fill in all required fields with valid values.', 'danger');
             return;
         }
 
-        const product = {
-            name,
-            type,
-            quantity,
-            price,
-            description
-        };
-
         try {
+            console.log('⏳ Showing loading state...');
+            this.showModalLoading(true);
+
+            const product = {
+                name,
+                type,
+                quantity,
+                price,
+                description
+            };
+
+            console.log('📦 Creating product:', product);
+
             let response;
             
             if (imageFile && generateAI) {
@@ -398,23 +559,73 @@ class InventoryManager {
             const result = await response.json();
 
             if (result.success) {
-                this.showAlert(`Product "${name}" added successfully!`, 'success');
+                console.log('✅ Product added successfully');
                 
-                // Close modal and reset form
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-                modal.hide();
-                document.getElementById('modalProductForm').reset();
+                // Clear form and hide modal
+                this.clearModalForm();
+                this.hideModal();
+                
+                console.log('🎉 Showing success alert...');
+                this.showAlert(`Product "${name}" added successfully!`, 'success');
                 
                 // Reload products
                 await this.loadProducts();
                 this.renderProducts();
                 this.updateSummary();
             } else {
+                console.log('❌ Server error:', result.message);
                 this.showAlert('Error adding product: ' + result.message, 'danger');
             }
         } catch (error) {
-            console.error('Error adding product:', error);
+            console.error('💥 Error adding product:', error);
             this.showAlert('Error adding product. Please check your connection.', 'danger');
+        } finally {
+            this.showModalLoading(false);
+        }
+    }
+
+    hideModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+        if (modal) {
+            modal.hide();
+            console.log('👋 Modal hidden');
+        } else {
+            // Fallback: try to hide using Bootstrap's modal method
+            const modalElement = document.getElementById('addProductModal');
+            if (modalElement) {
+                const bsModal = new bootstrap.Modal(modalElement);
+                bsModal.hide();
+                console.log('👋 Modal hidden using fallback method');
+            }
+        }
+    }
+
+    clearModalForm() {
+        const form = document.getElementById('modalProductForm');
+        if (form) {
+            form.reset();
+            console.log('🧹 Modal form cleared');
+        }
+        
+        // Clear validation errors
+        const requiredFields = ['modalProductName', 'modalProductType', 'modalQuantity', 'modalPrice'];
+        requiredFields.forEach(fieldId => {
+            this.clearFieldError(fieldId);
+        });
+    }
+
+    showModalLoading(show) {
+        const submitButton = document.getElementById('addProductBtn');
+        if (submitButton) {
+            if (show) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+                console.log('⏳ Modal loading state enabled');
+            } else {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-plus me-2"></i>Add Product';
+                console.log('✅ Modal loading state disabled');
+            }
         }
     }
 
@@ -672,7 +883,27 @@ class InventoryManager {
 }
 
 // Initialize the inventory manager when the page loads
-window.inventoryManager = null;
+let inventoryManager;
+
 document.addEventListener('DOMContentLoaded', () => {
-    window.inventoryManager = new InventoryManager();
+    console.log('🚀 DOM loaded, initializing InventoryManager...');
+    try {
+        inventoryManager = new InventoryManager();
+        
+        // Make it globally available for debugging
+        window.inventoryManager = inventoryManager;
+        console.log('✅ InventoryManager initialized and available globally');
+        console.log('✅ addProductFromModal method:', typeof inventoryManager.addProductFromModal);
+        
+        // Verify the method exists
+        if (typeof inventoryManager.addProductFromModal === 'function') {
+            console.log('🎯 Modal functionality is ready!');
+        } else {
+            console.error('❌ addProductFromModal method not found on InventoryManager');
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize InventoryManager:', error);
+        console.error('Error details:', error.stack);
+    }
 });

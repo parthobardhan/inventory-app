@@ -317,13 +317,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalProductName" class="form-label">Product Name</label>
+                                    <label for="modalProductName" class="form-label">Product Name *</label>
                                     <input type="text" class="form-control" id="modalProductName" required>
+                                    <div class="invalid-feedback" id="modalProductNameError"></div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalProductType" class="form-label">Product Type</label>
+                                    <label for="modalProductType" class="form-label">Product Type *</label>
                                     <select class="form-select" id="modalProductType" required>
                                         <option value="">Select Type</option>
                                         <option value="bed-covers">Bed Covers</option>
@@ -331,20 +332,23 @@
                                         <option value="sarees">Sarees</option>
                                         <option value="towels">Towels</option>
                                     </select>
+                                    <div class="invalid-feedback" id="modalProductTypeError"></div>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalQuantity" class="form-label">Quantity</label>
+                                    <label for="modalQuantity" class="form-label">Quantity *</label>
                                     <input type="number" class="form-control" id="modalQuantity" min="0" required>
+                                    <div class="invalid-feedback" id="modalQuantityError"></div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalPrice" class="form-label">Price ($)</label>
+                                    <label for="modalPrice" class="form-label">Price ($) *</label>
                                     <input type="number" class="form-control" id="modalPrice" min="0" step="0.01" required>
+                                    <div class="invalid-feedback" id="modalPriceError"></div>
                                 </div>
                             </div>
                         </div>

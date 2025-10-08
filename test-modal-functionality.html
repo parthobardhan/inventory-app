@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Functionality Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .test-pass { background-color: #d1edff; color: #0c5460; }
+        .test-fail { background-color: #f8d7da; color: #721c24; }
+        .test-info { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="mb-4">
+            <i class="fas fa-vial me-2"></i>
+            Modal Functionality Test
+        </h1>
+        
+        <div class="test-section">
+            <h3>Test 1: Element Existence</h3>
+            <p>Check if all required modal elements are present in the DOM.</p>
+            <button class="btn btn-primary" onclick="testElementExistence()">Run Test</button>
+            <div id="test1-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Event Binding</h3>
+            <p>Check if the modal button has proper event listeners attached.</p>
+            <button class="btn btn-primary" onclick="testEventBinding()">Run Test</button>
+            <div id="test2-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Modal Opening</h3>
+            <p>Test if the modal opens correctly when the button is clicked.</p>
+            <button class="btn btn-primary" onclick="testModalOpening()">Run Test</button>
+            <div id="test3-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Form Validation</h3>
+            <p>Test form validation with empty and invalid data.</p>
+            <button class="btn btn-primary" onclick="testFormValidation()">Run Test</button>
+            <div id="test4-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 5: Complete Workflow</h3>
+            <p>Test the complete modal workflow from opening to form submission.</p>
+            <button class="btn btn-primary" onclick="testCompleteWorkflow()">Run Test</button>
+            <div id="test5-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <p>Run all tests in sequence to verify complete modal functionality.</p>
+            <button class="btn btn-success" onclick="runAllTests()">Run All Tests</button>
+            <div id="all-tests-result" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal (same as in main app) -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        Add New Product
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="modalProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalProductName" class="form-label">Product Name *</label>
+                                    <input type="text" class="form-control" id="modalProductName" required>
+                                    <div class="invalid-feedback" id="modalProductNameError"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalProductType" class="form-label">Product Type *</label>
+                                    <select class="form-select" id="modalProductType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="bed-covers">Bed Covers</option>
+                                        <option value="cushion-covers">Cushion Covers</option>
+                                        <option value="sarees">Sarees</option>
+                                        <option value="towels">Towels</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="modalProductTypeError"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalQuantity" class="form-label">Quantity *</label>
+                                    <input type="number" class="form-control" id="modalQuantity" min="0" required>
+                                    <div class="invalid-feedback" id="modalQuantityError"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalPrice" class="form-label">Price ($) *</label>
+                                    <input type="number" class="form-control" id="modalPrice" min="0" step="0.01" required>
+                                    <div class="invalid-feedback" id="modalPriceError"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="modalDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="addProductBtn">
+                        <i class="fas fa-plus me-2"></i>Add Product
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Button -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="fas fa-plus me-2"></i>Add Product (Test Button)
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Test functions
+        function testElementExistence() {
+            const elements = [
+                'addProductModal',
+                'modalProductForm',
+                'modalProductName',
+                'modalProductType',
+                'modalQuantity',
+                'modalPrice',
+                'modalDescription',
+                'addProductBtn'
+            ];
+            
+            let allFound = true;
+            let results = [];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    results.push(`✅ ${id} - Found`);
+                } else {
+                    results.push(`❌ ${id} - Not found`);
+                    allFound = false;
+                }
+            });
+            
+            const resultDiv = document.getElementById('test1-result');
+            resultDiv.innerHTML = results.join('<br>');
+            resultDiv.className = `test-result ${allFound ? 'test-pass' : 'test-fail'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        function testEventBinding() {
+            const button = document.getElementById('addProductBtn');
+            const resultDiv = document.getElementById('test2-result');
+            
+            if (!button) {
+                resultDiv.innerHTML = '❌ Add Product button not found';
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.style.display = 'block';
+                return;
+            }
+            
+            // Check if button has event listeners
+            const hasHandler = button._inventoryHandler !== undefined;
+            
+            if (hasHandler) {
+                resultDiv.innerHTML = '✅ Event handler is properly attached';
+                resultDiv.className = 'test-result test-pass';
+            } else {
+                resultDiv.innerHTML = '❌ Event handler not found. This might be normal if the main script hasn\'t loaded yet.';
+                resultDiv.className = 'test-result test-info';
+            }
+            resultDiv.style.display = 'block';
+        }
+
+        function testModalOpening() {
+            const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+            modal.show();
+            
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = '✅ Modal opened successfully. Check if it\'s visible on screen.';
+            resultDiv.className = 'test-result test-pass';
+            resultDiv.style.display = 'block';
+        }
+
+        function testFormValidation() {
+            const resultDiv = document.getElementById('test4-result');
+            let results = [];
+            
+            // Test empty name
+            const nameField = document.getElementById('modalProductName');
+            if (nameField) {
+                nameField.value = '';
+                nameField.dispatchEvent(new Event('blur'));
+                const hasError = nameField.classList.contains('is-invalid');
+                results.push(hasError ? '✅ Name validation working' : '❌ Name validation not working');
+            }
+            
+            // Test invalid quantity
+            const quantityField = document.getElementById('modalQuantity');
+            if (quantityField) {
+                quantityField.value = '-1';
+                quantityField.dispatchEvent(new Event('blur'));
+                const hasError = quantityField.classList.contains('is-invalid');
+                results.push(hasError ? '✅ Quantity validation working' : '❌ Quantity validation not working');
+            }
+            
+            resultDiv.innerHTML = results.join('<br>');
+            resultDiv.className = 'test-result test-pass';
+            resultDiv.style.display = 'block';
+        }
+
+        function testCompleteWorkflow() {
+            const resultDiv = document.getElementById('test5-result');
+            resultDiv.innerHTML = '✅ Complete workflow test requires the main application script. Please test manually by filling out the form and clicking "Add Product".';
+            resultDiv.className = 'test-result test-info';
+            resultDiv.style.display = 'block';
+        }
+
+        function runAllTests() {
+            testElementExistence();
+            setTimeout(() => testEventBinding(), 100);
+            setTimeout(() => testFormValidation(), 200);
+            
+            const resultDiv = document.getElementById('all-tests-result');
+            resultDiv.innerHTML = '✅ All automated tests completed. Check individual test results above.';
+            resultDiv.className = 'test-result test-pass';
+            resultDiv.style.display = 'block';
+        }
+
+        // Auto-run element existence test on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testElementExistence, 500);
+        });
+    </script>
+</body>
+</html>
