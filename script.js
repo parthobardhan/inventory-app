@@ -5,11 +5,23 @@ class InventoryManager {
         this.products = [];
         this.filteredProducts = [];
         this.apiBaseUrl = '/api/products';
+        this.dbManager = null;
         this.init();
     }
 
     async init() {
         console.log('🚀 Initializing InventoryManager...');
+        
+        // Initialize IndexedDB for offline functionality
+        try {
+            this.dbManager = new IndexedDBManager();
+            await this.dbManager.init();
+            console.log('✅ IndexedDB initialized successfully');
+        } catch (error) {
+            console.warn('⚠️ IndexedDB initialization failed:', error);
+            this.dbManager = null;
+        }
+        
         this.bindEvents();
         await this.loadProducts();
         this.renderProducts();
@@ -231,12 +243,33 @@ class InventoryManager {
             if (result.success) {
                 this.products = result.data;
                 this.filteredProducts = [...this.products];
+                
+                // Sync to IndexedDB for offline access
+                if (this.dbManager) {
+                    for (const product of this.products) {
+                        await this.dbManager.saveProduct(product);
+                    }
+                }
             } else {
                 this.showAlert('Error loading products: ' + result.message, 'danger');
             }
         } catch (error) {
-            console.error('Error loading products:', error);
-            this.showAlert('Error loading products. Please check your connection.', 'danger');
+            console.error('Error loading products from API:', error);
+            
+            // Fallback to IndexedDB if API fails
+            if (this.dbManager) {
+                try {
+                    console.log('📱 Loading products from IndexedDB...');
+                    this.products = await this.dbManager.getAllProducts();
+                    this.filteredProducts = [...this.products];
+                    this.showAlert('Loaded products from offline storage. Some data may be outdated.', 'warning');
+                } catch (dbError) {
+                    console.error('Error loading from IndexedDB:', dbError);
+                    this.showAlert('Error loading products. Please check your connection.', 'danger');
+                }
+            } else {
+                this.showAlert('Error loading products. Please check your connection.', 'danger');
+            }
         }
     }
 
@@ -311,6 +344,11 @@ class InventoryManager {
             if (result.success) {
                 const productId = result.data._id;
                 
+                // Save to IndexedDB for offline access
+                if (this.dbManager) {
+                    await this.dbManager.saveProduct(result.data);
+                }
+                
                 // Upload image if provided - AI content integration is handled on the backend
                 if (imageFile) {
                     const imageResult = await this.uploadProductImage(productId, imageFile, generateAI);
@@ -327,13 +365,45 @@ class InventoryManager {
                 this.updateSummary();
                 this.clearForm();
                 this.hideAIPreview();
-                this.showAlert(`Product "${finalName}" added successfully!`, 'success');
+                this.showAlert(`Product "${name}" added successfully!`, 'success');
             } else {
                 this.showAlert('Error adding product: ' + result.message, 'danger');
             }
         } catch (error) {
             console.error('Error adding product:', error);
-            this.showAlert('Error adding product. Please check your connection.', 'danger');
+            
+            // Fallback to IndexedDB if API fails
+            if (this.dbManager) {
+                try {
+                    const localProduct = {
+                        _id: this.dbManager.generateLocalId(),
+                        name,
+                        type,
+                        quantity,
+                        price,
+                        description,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isOffline: true
+                    };
+                    
+                    await this.dbManager.saveProduct(localProduct);
+                    await this.dbManager.addToSyncQueue('create', localProduct);
+                    
+                    this.products.push(localProduct);
+                    this.filteredProducts = [...this.products];
+                    this.renderProducts();
+                    this.updateSummary();
+                    this.clearForm();
+                    this.hideAIPreview();
+                    this.showAlert(`Product "${name}" saved offline. Will sync when connection is restored.`, 'warning');
+                } catch (dbError) {
+                    console.error('Error saving to IndexedDB:', dbError);
+                    this.showAlert('Error adding product. Please check your connection.', 'danger');
+                }
+            } else {
+                this.showAlert('Error adding product. Please check your connection.', 'danger');
+            }
         }
     }
 
@@ -561,6 +631,11 @@ class InventoryManager {
             if (result.success) {
                 console.log('✅ Product added successfully');
                 
+                // Save to IndexedDB for offline access
+                if (this.dbManager) {
+                    await this.dbManager.saveProduct(result.data);
+                }
+                
                 // Clear form and hide modal
                 this.clearModalForm();
                 this.hideModal();
@@ -578,7 +653,39 @@ class InventoryManager {
             }
         } catch (error) {
             console.error('💥 Error adding product:', error);
-            this.showAlert('Error adding product. Please check your connection.', 'danger');
+            
+            // Fallback to IndexedDB if API fails
+            if (this.dbManager) {
+                try {
+                    const localProduct = {
+                        _id: this.dbManager.generateLocalId(),
+                        name,
+                        type,
+                        quantity,
+                        price,
+                        description,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isOffline: true
+                    };
+                    
+                    await this.dbManager.saveProduct(localProduct);
+                    await this.dbManager.addToSyncQueue('create', localProduct);
+                    
+                    this.products.push(localProduct);
+                    this.filteredProducts = [...this.products];
+                    this.renderProducts();
+                    this.updateSummary();
+                    this.clearModalForm();
+                    this.hideModal();
+                    this.showAlert(`Product "${name}" saved offline. Will sync when connection is restored.`, 'warning');
+                } catch (dbError) {
+                    console.error('Error saving to IndexedDB:', dbError);
+                    this.showAlert('Error adding product. Please check your connection.', 'danger');
+                }
+            } else {
+                this.showAlert('Error adding product. Please check your connection.', 'danger');
+            }
         } finally {
             this.showModalLoading(false);
         }
