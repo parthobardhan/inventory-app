@@ -98,29 +98,44 @@ class InventoryManager {
         }
 
         // Search functionality
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.filterProducts();
-        });
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.filterProducts();
+            });
+        }
 
         // Filter by type
-        document.getElementById('filterType').addEventListener('change', (e) => {
-            this.filterProducts();
-        });
+        const filterType = document.getElementById('filterType');
+        if (filterType) {
+            filterType.addEventListener('change', (e) => {
+                this.filterProducts();
+            });
+        }
 
         // Refresh button
-        document.getElementById('refreshBtn').addEventListener('click', (e) => {
-            this.forceRefresh();
-        });
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', (e) => {
+                this.forceRefresh();
+            });
+        }
 
         // Edit product modal save button
-        document.getElementById('saveEditBtn').addEventListener('click', () => {
-            this.saveEditedProduct();
-        });
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        if (saveEditBtn) {
+            saveEditBtn.addEventListener('click', () => {
+                this.saveEditedProduct();
+            });
+        }
 
-        // Image upload functionality
-        document.getElementById('productImage').addEventListener('change', (e) => {
-            this.handleImagePreview(e);
-        });
+        // Image upload functionality (homepage only)
+        const productImage = document.getElementById('productImage');
+        if (productImage) {
+            productImage.addEventListener('change', (e) => {
+                this.handleImagePreview(e);
+            });
+        }
 
         // Modal image upload functionality
         const modalImageInput = document.getElementById('modalProductImage');
@@ -133,14 +148,20 @@ class InventoryManager {
             console.error('❌ Modal image input not found during event binding');
         }
 
-        // AI content editing buttons
-        document.getElementById('editTitleBtn').addEventListener('click', () => {
-            this.toggleEditMode('aiTitle', 'editTitleBtn');
-        });
+        // AI content editing buttons (homepage only)
+        const editTitleBtn = document.getElementById('editTitleBtn');
+        if (editTitleBtn) {
+            editTitleBtn.addEventListener('click', () => {
+                this.toggleEditMode('aiTitle', 'editTitleBtn');
+            });
+        }
 
-        document.getElementById('editDescBtn').addEventListener('click', () => {
-            this.toggleEditMode('aiDescription', 'editDescBtn');
-        });
+        const editDescBtn = document.getElementById('editDescBtn');
+        if (editDescBtn) {
+            editDescBtn.addEventListener('click', () => {
+                this.toggleEditMode('aiDescription', 'editDescBtn');
+            });
+        }
 
         // Modal AI content editing buttons
         const modalEditTitleBtn = document.getElementById('modalEditTitleBtn');
@@ -164,19 +185,22 @@ class InventoryManager {
         }
 
         // Event delegation for edit and delete buttons
-        document.getElementById('productTableBody').addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
+        const productTableBody = document.getElementById('productTableBody');
+        if (productTableBody) {
+            productTableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
 
-            const productId = button.dataset.productId;
-            if (!productId) return;
+                const productId = button.dataset.productId;
+                if (!productId) return;
 
-            if (button.classList.contains('edit-btn')) {
-                this.editProduct(productId);
-            } else if (button.classList.contains('delete-btn')) {
-                this.deleteProduct(productId);
-            }
-        });
+                if (button.classList.contains('edit-btn')) {
+                    this.editProduct(productId);
+                } else if (button.classList.contains('delete-btn')) {
+                    this.deleteProduct(productId);
+                }
+            });
+        }
     }
 
     setupNetworkMonitoring() {
@@ -729,11 +753,15 @@ class InventoryManager {
 
     renderProducts() {
         const tbody = document.getElementById('productTableBody');
+        if (!tbody) {
+            console.warn('Product table body not found - page may not have inventory table');
+            return;
+        }
 
         if (this.filteredProducts.length === 0) {
             tbody.innerHTML = `
                 <tr id="emptyState">
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                         <i class="fas fa-box-open fa-2x mb-2"></i>
                         <br>
                         No products in inventory. Add your first product to get started!
@@ -781,21 +809,33 @@ class InventoryManager {
             if (result.success) {
                 const summary = result.data;
                 
-                document.getElementById('totalProducts').textContent = summary.totalProducts;
-                document.getElementById('totalValue').textContent = `$${summary.totalValue.toFixed(2)}`;
+                // Update summary elements if they exist (homepage and inventory page)
+                const totalProductsEl = document.getElementById('totalProducts');
+                const totalValueEl = document.getElementById('totalValue');
+                const typeBreakdownEl = document.getElementById('typeBreakdown');
+                
+                if (totalProductsEl) {
+                    totalProductsEl.textContent = summary.totalProducts;
+                }
+                
+                if (totalValueEl) {
+                    totalValueEl.textContent = `$${summary.totalValue.toFixed(2)}`;
+                }
 
                 // Type breakdown
-                const breakdownHtml = Object.entries(summary.typeBreakdown).map(([type, data]) => `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="type-badge type-${type}">${this.formatProductType(type)}</span>
-                        <div class="text-end">
-                            <small class="text-muted">${data.count} items</small><br>
-                            <small class="fw-bold">$${data.value.toFixed(2)}</small>
+                if (typeBreakdownEl) {
+                    const breakdownHtml = Object.entries(summary.typeBreakdown).map(([type, data]) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="type-badge type-${type}">${this.formatProductType(type)}</span>
+                            <div class="text-end">
+                                <small class="text-muted">${data.count} items</small><br>
+                                <small class="fw-bold">$${data.value.toFixed(2)}</small>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
 
-                document.getElementById('typeBreakdown').innerHTML = breakdownHtml || '<p class="text-muted text-center">No products yet</p>';
+                    typeBreakdownEl.innerHTML = breakdownHtml || '<p class="text-muted text-center">No products yet</p>';
+                }
                 
                 this.updateAnalyticsDashboard(summary.typeBreakdown);
             }
