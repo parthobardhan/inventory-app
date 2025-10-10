@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverz Cushion Covers | Cotton, Linen & Velvet Pillow Covers</title>
+    <meta name="description" content="Shop premium cushion covers from Coverz. Find cotton, linen, and velvet pillow covers in various sizes and colors for every room.">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="InventoryApp">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192x192.png">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="cushion-covers-styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="/coverz" class="nav-brand">Coverz</a>
+            <div class="nav-links">
+                <a href="/coverz">Home</a>
+                <a href="/cushion-covers" class="active">Cushion Covers</a>
+                <a href="/coverz#collections">Collections</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="container">
+            <a href="/coverz">Home</a>
+            <span class="separator">></span>
+            <span class="current">Cushion Covers</span>
+        </div>
+    </div>
+
+    <!-- Category Hero/Banner -->
+    <section class="category-hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-headline">Stylish & Comfortable Cushion Covers</h1>
+                <p class="hero-subhead">Transform your space instantly with premium cotton, linen, and velvet cushion covers in beautiful colors and patterns.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="content-layout">
+                <!-- Sidebar Filters -->
+                <aside class="filters-sidebar" id="filtersSidebar">
+                    <div class="filters-header">
+                        <h3>Filters</h3>
+                        <button class="close-filters" id="closeFilters">×</button>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Size</h4>
+                        <div class="filter-options">
+                            <label class="filter-option">
+                                <input type="checkbox" name="size" value="small">
+                                <span class="checkmark"></span>
+                                Small (16" x 16")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="size" value="medium">
+                                <span class="checkmark"></span>
+                                Medium (18" x 18")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="size" value="large">
+                                <span class="checkmark"></span>
+                                Large (20" x 20")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="size" value="rectangular">
+                                <span class="checkmark"></span>
+                                Rectangular (12" x 20")
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Color</h4>
+                        <div class="color-swatches">
+                            <label class="color-swatch" data-color="white">
+                                <input type="checkbox" name="color" value="white">
+                                <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="beige">
+                                <input type="checkbox" name="color" value="beige">
+                                <span class="color-circle" style="background-color: #f5f5dc;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="gray">
+                                <input type="checkbox" name="color" value="gray">
+                                <span class="color-circle" style="background-color: #808080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="navy">
+                                <input type="checkbox" name="color" value="navy">
+                                <span class="color-circle" style="background-color: #000080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="sage">
+                                <input type="checkbox" name="color" value="sage">
+                                <span class="color-circle" style="background-color: #9caf88;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="coral">
+                                <input type="checkbox" name="color" value="coral">
+                                <span class="color-circle" style="background-color: #ff7f50;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="teal">
+                                <input type="checkbox" name="color" value="teal">
+                                <span class="color-circle" style="background-color: #008080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="mustard">
+                                <input type="checkbox" name="color" value="mustard">
+                                <span class="color-circle" style="background-color: #ffdb58;"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Material</h4>
+                        <div class="filter-options">
+                            <label class="filter-option">
+                                <input type="checkbox" name="material" value="cotton">
+                                <span class="checkmark"></span>
+                                Cotton
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="material" value="linen">
+                                <span class="checkmark"></span>
+                                Linen
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="material" value="velvet">
+                                <span class="checkmark"></span>
+                                Velvet
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="material" value="blend">
+                                <span class="checkmark"></span>
+                                Blend
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-actions">
+                        <button class="btn btn-outline" id="clearFilters">Clear All</button>
+                        <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+                    </div>
+                </aside>
+
+                <!-- Products Section -->
+                <section class="products-section">
+                    <!-- Toolbar -->
+                    <div class="products-toolbar">
+                        <div class="results-info">
+                            <span id="resultsCount">Loading products...</span>
+                        </div>
+                        <div class="sort-controls">
+                            <label for="sortBy">Sort by:</label>
+                            <select id="sortBy" class="sort-select">
+                                <option value="bestselling">Bestselling</option>
+                                <option value="dateAdded">Newest Arrivals</option>
+                                <option value="price-asc">Price: Low to High</option>
+                                <option value="price-desc">Price: High to Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading-state" id="loadingState">
+                        <div class="loading-spinner"></div>
+                        <p>Loading cushion covers...</p>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="products-grid" id="productsGrid">
+                        <!-- Products will be loaded here dynamically -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <div class="empty-icon">🛋️</div>
+                        <h3>No cushion covers found</h3>
+                        <p>Try adjusting your filters or check back later for new arrivals.</p>
+                        <button class="btn btn-outline" onclick="clearAllFilters()">Clear Filters</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- CTA + Value Prop Banner -->
+    <section class="cta-banner">
+        <div class="container">
+            <div class="banner-content">
+                <h2 class="banner-headline">Mix & Match Your Living Space</h2>
+                <p class="banner-subhead">Explore coordinating throw blankets and decorative pillows to complete your home's look.</p>
+                <a href="/coverz#collections" class="btn btn-primary btn-large">Shop All Collections</a>
+            </div>
+            
+            <div class="value-props-banner">
+                <div class="value-prop">
+                    <span class="value-icon">🌟</span>
+                    <span>Premium Fabrics</span>
+                </div>
+                <div class="value-prop">
+                    <span class="value-icon">🔄</span>
+                    <span>Machine-Washable</span>
+                </div>
+                <div class="value-prop">
+                    <span class="value-icon">✨</span>
+                    <span>Thoughtful Craftsmanship</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mobile Sticky Filter Bar -->
+    <div class="mobile-filter-bar">
+        <button class="mobile-filter-btn" id="mobileFilterBtn">
+            <span class="filter-icon">⚙️</span>
+            Filter & Sort
+        </button>
+    </div>
+
+    <!-- Mobile Filter Modal -->
+    <div class="mobile-filter-modal" id="mobileFilterModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Filter & Sort</h3>
+                <button class="close-modal" id="closeMobileModal">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Sort options for mobile -->
+                <div class="mobile-sort-section">
+                    <h4>Sort By</h4>
+                    <div class="sort-options">
+                        <label class="sort-option">
+                            <input type="radio" name="mobileSort" value="bestselling" checked>
+                            <span>Bestselling</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="mobileSort" value="dateAdded">
+                            <span>Newest Arrivals</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="mobileSort" value="price-asc">
+                            <span>Price: Low to High</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="mobileSort" value="price-desc">
+                            <span>Price: High to Low</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Filters (same as sidebar) -->
+                <div class="mobile-filters">
+                    <!-- Size Filter -->
+                    <div class="filter-group">
+                        <h4>Size</h4>
+                        <div class="filter-options">
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileSize" value="small">
+                                <span class="checkmark"></span>
+                                Small (16" x 16")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileSize" value="medium">
+                                <span class="checkmark"></span>
+                                Medium (18" x 18")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileSize" value="large">
+                                <span class="checkmark"></span>
+                                Large (20" x 20")
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileSize" value="rectangular">
+                                <span class="checkmark"></span>
+                                Rectangular (12" x 20")
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Color Filter -->
+                    <div class="filter-group">
+                        <h4>Color</h4>
+                        <div class="color-swatches">
+                            <label class="color-swatch" data-color="white">
+                                <input type="checkbox" name="mobileColor" value="white">
+                                <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="beige">
+                                <input type="checkbox" name="mobileColor" value="beige">
+                                <span class="color-circle" style="background-color: #f5f5dc;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="gray">
+                                <input type="checkbox" name="mobileColor" value="gray">
+                                <span class="color-circle" style="background-color: #808080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="navy">
+                                <input type="checkbox" name="mobileColor" value="navy">
+                                <span class="color-circle" style="background-color: #000080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="sage">
+                                <input type="checkbox" name="mobileColor" value="sage">
+                                <span class="color-circle" style="background-color: #9caf88;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="coral">
+                                <input type="checkbox" name="mobileColor" value="coral">
+                                <span class="color-circle" style="background-color: #ff7f50;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="teal">
+                                <input type="checkbox" name="mobileColor" value="teal">
+                                <span class="color-circle" style="background-color: #008080;"></span>
+                            </label>
+                            <label class="color-swatch" data-color="mustard">
+                                <input type="checkbox" name="mobileColor" value="mustard">
+                                <span class="color-circle" style="background-color: #ffdb58;"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Material Filter -->
+                    <div class="filter-group">
+                        <h4>Material</h4>
+                        <div class="filter-options">
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileMaterial" value="cotton">
+                                <span class="checkmark"></span>
+                                Cotton
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileMaterial" value="linen">
+                                <span class="checkmark"></span>
+                                Linen
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileMaterial" value="velvet">
+                                <span class="checkmark"></span>
+                                Velvet
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" name="mobileMaterial" value="blend">
+                                <span class="checkmark"></span>
+                                Blend
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="clearMobileFilters">Clear All</button>
+                <button class="btn btn-primary" id="applyMobileFilters">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick View Modal -->
+    <div class="quick-view-modal" id="quickViewModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-container">
+            <div class="modal-body">
+                <div class="modal-image">
+                    <img id="modalProductImage" src="" alt="Product Image">
+                </div>
+                <div class="modal-details">
+                    <button class="modal-close" id="modalClose">×</button>
+                    <h3 class="modal-product-title" id="modalProductName">Product Name</h3>
+                    <div class="modal-description" id="modalProductDescription">Product description</div>
+                    <div class="modal-price" id="modalProductPrice">$0.00</div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary btn-large" id="modalAddToCart">Add to Cart</button>
+                        <button class="btn btn-outline" id="modalClose2">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="cushion-covers-script.js"></script>
+</body>
+</html>
