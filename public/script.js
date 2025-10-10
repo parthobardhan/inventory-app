@@ -11,6 +11,13 @@ class InventoryManager {
         this.syncInProgress = false;
         this.pieChart = null;
         this.barChart = null;
+        
+        // Check if IndexedDBManager is available
+        if (typeof IndexedDBManager === 'undefined') {
+            console.error('IndexedDBManager is not defined. Please ensure indexeddb-utils.js is loaded first.');
+            throw new Error('IndexedDBManager is not defined');
+        }
+        
         this.dbManager = new IndexedDBManager();
         this.init();
     }
@@ -819,20 +826,38 @@ class InventoryManager {
     updateAnalyticsDashboard(typeBreakdown) {
         const hasData = Object.keys(typeBreakdown).length > 0;
         
-        if (hasData) {
-            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'block';
-            document.getElementById('emptyAnalyticsState').style.display = 'none';
-            
-            this.renderPieChart(typeBreakdown);
-            this.renderBarChart(typeBreakdown);
+        // Check if we're on the analytics page
+        const analyticsContainer = document.getElementById('analyticsContainer');
+        const emptyAnalyticsState = document.getElementById('emptyAnalyticsState');
+        
+        if (analyticsContainer && emptyAnalyticsState) {
+            // We're on the analytics page
+            if (hasData) {
+                analyticsContainer.querySelector('.row').style.display = 'block';
+                emptyAnalyticsState.style.display = 'none';
+                
+                this.renderPieChart(typeBreakdown);
+                this.renderBarChart(typeBreakdown);
+            } else {
+                analyticsContainer.querySelector('.row').style.display = 'none';
+                emptyAnalyticsState.style.display = 'block';
+            }
         } else {
-            document.getElementById('analyticsContainer').querySelector('.row').style.display = 'none';
-            document.getElementById('emptyAnalyticsState').style.display = 'block';
+            // We're on the homepage - just render charts if they exist
+            if (hasData) {
+                this.renderPieChart(typeBreakdown);
+                this.renderBarChart(typeBreakdown);
+            }
         }
     }
 
     renderPieChart(typeBreakdown) {
-        const ctx = document.getElementById('pieChart').getContext('2d');
+        const pieChartElement = document.getElementById('pieChart');
+        if (!pieChartElement) {
+            return; // Chart element doesn't exist on this page
+        }
+        
+        const ctx = pieChartElement.getContext('2d');
         const colors = this.getTypeColors();
         
         const data = {
@@ -879,7 +904,12 @@ class InventoryManager {
     }
 
     renderBarChart(typeBreakdown) {
-        const ctx = document.getElementById('barChart').getContext('2d');
+        const barChartElement = document.getElementById('barChart');
+        if (!barChartElement) {
+            return; // Chart element doesn't exist on this page
+        }
+        
+        const ctx = barChartElement.getContext('2d');
         const colors = this.getTypeColors();
         
         const data = {
@@ -1171,6 +1201,11 @@ let inventoryManager;
 document.addEventListener('DOMContentLoaded', async () => {
     console.warn('🚀 Initializing InventoryManager...');
     try {
+        // Check if IndexedDBManager is available before creating InventoryManager
+        if (typeof IndexedDBManager === 'undefined') {
+            throw new Error('IndexedDBManager is not defined. Please check if indexeddb-utils.js is loaded.');
+        }
+        
         inventoryManager = new InventoryManager();
         
         // The constructor calls init() automatically, but we need to wait for it

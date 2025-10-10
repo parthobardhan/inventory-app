@@ -11,6 +11,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 dev.env
+*.env.swp
+*.swp
+*~
 
 # Runtime data
 pids

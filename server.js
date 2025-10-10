@@ -209,6 +209,10 @@ app.get('/bed-covers', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bed-covers.html'));
 });
 
+app.get('/cushion-covers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cushion-covers.html'));
+});
+
 // Serve frontend home page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
