@@ -1,11 +1,5 @@
-const { HfInference } = require('@huggingface/inference');
 const axios = require('axios');
-const { Ollama } = require('ollama');
 const OpenAI = require('openai');
-
-const HF_TIMEOUT_MS = parseInt(process.env.HF_TIMEOUT_MS || '20000', 10);
-const HF_MAX_RETRIES = parseInt(process.env.HF_MAX_RETRIES || '2', 10);
-const HF_BACKOFF_MS = parseInt(process.env.HF_BACKOFF_MS || '500', 10);
 
 // Initialize OpenAI client for production (only if API key is available)
 let openai = null;
@@ -15,31 +9,8 @@ if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-ap
   });
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function isRetriableHFError(err) {
-  const status = err && (err.status || err.statusCode);
-  const msg = (err && (err.message || err.toString())) || '';
-  if (status && [429, 500, 502, 503, 504].includes(status)) return true;
-  if (/timeout|ENOTFOUND|ECONNRESET|EAI_AGAIN|network|fetch failed/i.test(msg)) return true;
-  return false;
-}
-
-async function withRetries(fn, maxRetries = HF_MAX_RETRIES, backoffMs = HF_BACKOFF_MS) {
-  let lastErr;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (!isRetriableHFError(err) || attempt === maxRetries) break;
-      await sleep(backoffMs * Math.pow(2, attempt));
-    }
-  }
-  throw lastErr;
-}
+// Note: Ollama is only used in development. We lazy-require it
+// where needed to avoid loading it in production environments.
 
 /**
  * Determine which AI service to use based on environment
@@ -304,8 +275,14 @@ You can mention how the product will enhance where it will be used, eg. a bed-co
 
     console.log('🔄 Using LOCAL Ollama LLaVA model...');
     
-    // Use Ollama local LLaVA model
-    const ollamaClient = new Ollama();
+    // Use Ollama local LLaVA model (lazy load)
+    let OllamaCtor;
+    try {
+      ({ Ollama: OllamaCtor } = require('ollama'));
+    } catch (e) {
+      throw new Error('Ollama client not installed. Install "ollama" to use local LLaVA in development.');
+    }
+    const ollamaClient = new OllamaCtor();
     const response = await ollamaClient.chat({
       model: 'llava:7b',
       messages: [{
@@ -504,38 +481,11 @@ async function testAIServiceWithFile(imagePath, productType = 'bed-covers', forc
   }
 }
 
-async function testHuggingFaceAPI() {
-  try {
-    console.log('🧪 Testing Hugging Face API...');
-    const testResult = await hf.textGeneration({
-      model: 'gpt2',
-      inputs: 'Hello',
-      parameters: { max_new_tokens: 5 }
-    });
-    console.log('✅ HF API working:', testResult);
-    return true;
-  } catch (error) {
-    console.error('❌ HF API test failed:', error.message);
-    return false;
-  }
-}
-
-// Available models for image-to-text generation (legacy support)
-const MODELS = {
-  LLAVA_1_5_7B: 'llava-hf/llava-1.5-7b-hf',
-  LLAVA_1_5_13B: 'llava-hf/llava-1.5-13b-hf',
-  LLAVA_V1_6_MISTRAL: 'llava-hf/llava-v1.6-mistral-7b-hf',
-  GIT_BASE: 'microsoft/git-base',
-  BLIP_BASE: 'Salesforce/blip-image-captioning-base'
-};
-
 module.exports = {
   generateProductDescription,
   generateProductDescriptionWithOpenAI,
   generateProductDescriptionWithOllama,
   testAIService,
   testAIServiceWithFile,
-  testHuggingFaceAPI,
-  getAIService,
-  MODELS
+  getAIService
 };
