@@ -529,12 +529,78 @@ const MODELS = {
   BLIP_BASE: 'Salesforce/blip-image-captioning-base'
 };
 
+/**
+ * Test ONLY local LLaVA models via Ollama (no fallback)
+ * @param {string} imagePath - Path to local image file
+ * @param {string} productType - Product type for context
+ * @returns {Object} Test results or throws error
+ */
+async function testLLaVAOnly(imagePath, productType = 'bed-covers') {
+  console.log('🎯 TESTING LOCAL LLaVA ONLY (NO FALLBACK OR OPENAI)');
+  console.log(`📁 Image path: ${imagePath}`);
+  console.log(`🏷️  Product type: ${productType}`);
+  
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Resolve the path (handle ~/ home directory)
+    const resolvedPath = imagePath.startsWith('~/') 
+      ? path.join(require('os').homedir(), imagePath.slice(2))
+      : imagePath;
+    
+    console.log(`📂 Resolved path: ${resolvedPath}`);
+    
+    // Check if file exists
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Image file not found: ${resolvedPath}`);
+    }
+    
+    // Read image file
+    console.log('📥 Reading image file...');
+    const imageBuffer = fs.readFileSync(resolvedPath);
+    console.log(`✅ Image loaded: ${imageBuffer.length} bytes`);
+    
+    // Force LLaVA generation (no OpenAI fallback)
+    console.log('🔄 Testing LLaVA generation directly...');
+    const caption = await generateLLaVACaption(imageBuffer, productType);
+    
+    const result = {
+      caption: caption,
+      model: 'Local Ollama LLaVA',
+      success: true,
+      testedAt: new Date()
+    };
+    
+    console.log('✅ LLaVA TEST PASSED!');
+    console.log('📊 Results:', result);
+    
+    return result;
+    
+  } catch (error) {
+    console.error('❌ LLaVA TEST FAILED!');
+    console.error('🚨 Error:', error.message);
+    
+    const result = {
+      imagePath: imagePath,
+      productType: productType,
+      model: 'Local Ollama LLaVA',
+      success: false,
+      error: error.message,
+      testedAt: new Date()
+    };
+    
+    throw result;
+  }
+}
+
 module.exports = {
   generateProductDescription,
   generateProductDescriptionWithOpenAI,
   generateProductDescriptionWithOllama,
   testAIService,
   testAIServiceWithFile,
+  testLLaVAOnly,
   testHuggingFaceAPI,
   getAIService,
   MODELS

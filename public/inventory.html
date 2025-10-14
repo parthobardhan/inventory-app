@@ -164,17 +164,18 @@
                             <table class="table table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Product Details</th>
+                                        <th>Image</th>
+                                        <th>Product Name</th>
                                         <th>Type</th>
                                         <th>Quantity</th>
-                                        <th>Price</th>
+                                        <th>List Price</th>
                                         <th>Total Value</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="productTableBody">
                                     <tr id="emptyState">
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             <i class="fas fa-box-open fa-2x mb-2"></i>
                                             <br>
                                             No products in inventory. Add your first product to get started!
@@ -234,15 +235,20 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalPrice" class="form-label">Price ($) *</label>
+                                    <label for="modalPrice" class="form-label">List Price ($) *</label>
                                     <input type="number" class="form-control" id="modalPrice" min="0" step="0.01" required>
                                     <div class="invalid-feedback" id="modalPriceError"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="modalDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="modalDescription" rows="3"></textarea>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalCost" class="form-label">Cost ($)</label>
+                                    <input type="number" class="form-control" id="modalCost" min="0" step="0.01" placeholder="0.00">
+                                    <div class="form-text">Cost to calculate profit (optional)</div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Image Upload Section -->
@@ -333,10 +339,6 @@
                         <div class="mb-3">
                             <label for="editPrice" class="form-label">Price ($)</label>
                             <input type="number" class="form-control" id="editPrice" min="0" step="0.01" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="editDescription" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
@@ -444,3 +446,4 @@
     </script>
 </body>
 </html>
+

@@ -4,6 +4,7 @@ class AnalyticsDashboard {
         this.apiBase = '/api/products';
         this.pieChart = null;
         this.barChart = null;
+        this.profitChart = null;
         this.colors = {
             'bed-covers': '#0d6efd',      // Bootstrap primary blue
             'cushion-covers': '#198754',   // Bootstrap success green
@@ -15,7 +16,10 @@ class AnalyticsDashboard {
 
     async init() {
         try {
-            await this.loadAnalyticsData();
+            await Promise.all([
+                this.loadAnalyticsData(),
+                this.loadProfitData()
+            ]);
         } catch (error) {
             console.error('Error initializing analytics dashboard:', error);
             this.showError('Failed to initialize analytics dashboard');
@@ -29,6 +33,7 @@ class AnalyticsDashboard {
 
             if (result.success) {
                 const data = result.data;
+                this.analyticsData = data;
                 this.hideLoading();
                 
                 if (data.productCount === 0) {
@@ -49,9 +54,52 @@ class AnalyticsDashboard {
         }
     }
 
+    async loadProfitData() {
+        try {
+            const response = await fetch(`${this.apiBase}/stats/profits`);
+            const result = await response.json();
+
+            if (result.success) {
+                const data = result.data;
+                this.profitData = data;
+                this.updateProfitMetrics(data);
+                this.renderProfitChart(data.monthlyProfits);
+            } else {
+                console.warn('Failed to fetch profit data:', result.message);
+                // Set default profit values
+                this.updateProfitMetrics({
+                    currentMonthProfit: 0,
+                    lastMonthProfit: 0,
+                    monthlyProfits: []
+                });
+            }
+        } catch (error) {
+            console.error('Error loading profit data:', error);
+            // Set default profit values on error
+            this.updateProfitMetrics({
+                currentMonthProfit: 0,
+                lastMonthProfit: 0,
+                monthlyProfits: []
+            });
+        }
+    }
+
     updateMetrics(data) {
         document.getElementById('totalProductsMetric').textContent = data.totalProducts.toLocaleString();
         document.getElementById('totalValueMetric').textContent = `$${data.totalValue.toFixed(2)}`;
+    }
+
+    updateProfitMetrics(data) {
+        const currentMonthElement = document.getElementById('currentMonthProfitMetric');
+        const lastMonthElement = document.getElementById('lastMonthProfitMetric');
+        
+        if (currentMonthElement) {
+            currentMonthElement.textContent = `$${data.currentMonthProfit.toFixed(2)}`;
+        }
+        
+        if (lastMonthElement) {
+            lastMonthElement.textContent = `$${data.lastMonthProfit.toFixed(2)}`;
+        }
     }
 
     renderPieChart(typeBreakdown) {
@@ -171,6 +219,76 @@ class AnalyticsDashboard {
                         title: {
                             display: true,
                             text: 'Product Types'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    renderProfitChart(monthlyProfits) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        
+        const labels = [];
+        const data = [];
+        
+        monthlyProfits.forEach(monthData => {
+            // Convert YYYY-MM to more readable format
+            const date = new Date(monthData.month + '-01');
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+            data.push(monthData.profit);
+        });
+
+        if (this.profitChart) {
+            this.profitChart.destroy();
+        }
+
+        this.profitChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Monthly Profit',
+                    data: data,
+                    backgroundColor: '#0d6efd',
+                    borderColor: '#0a58ca',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                return `Profit: $${value.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Profit ($)'
                         }
                     }
                 }

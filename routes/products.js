@@ -187,13 +187,14 @@ router.post('/', checkDBConnection, async (req, res) => {
   });
   
   try {
-    const { name, type, quantity, price, description } = req.body;
+    const { name, type, quantity, price, cost, description } = req.body;
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
       name: name,
       type: type,
       quantity: quantity,
       price: price,
+      cost: cost,
       description: description ? description.substring(0, 100) + '...' : 'none'
     });
     
@@ -220,6 +221,7 @@ router.post('/', checkDBConnection, async (req, res) => {
       type,
       quantity,
       price,
+      cost: cost || 0,
       description
     });
     
@@ -280,7 +282,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       });
     }
 
-    const { name, type, quantity, price, description } = productData;
+    const { name, type, quantity, price, cost, description } = productData;
     const { generateAI = 'true' } = req.body;
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
@@ -288,6 +290,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       type: type,
       quantity: quantity,
       price: price,
+      cost: cost,
       description: description ? description.substring(0, 100) + '...' : 'none',
       hasImage: !!req.file,
       generateAI: generateAI
@@ -316,6 +319,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       type,
       quantity,
       price,
+      cost: cost || 0,
       description
     });
     
@@ -489,7 +493,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
 // PUT /api/products/:id - Update product
 router.put('/:id', checkDBConnection, async (req, res) => {
   try {
-    const { name, type, quantity, price, description } = req.body;
+    const { name, type, quantity, price, cost, dateSold, description } = req.body;
     
     const product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -498,6 +502,8 @@ router.put('/:id', checkDBConnection, async (req, res) => {
         type,
         quantity,
         price,
+        cost,
+        dateSold,
         description,
         lastUpdated: new Date()
       },
@@ -560,6 +566,91 @@ router.delete('/:id', checkDBConnection, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting product',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/products/stats/profits - Get profit statistics
+router.get('/stats/profits', checkDBConnection, async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // Get first day of current month
+    const currentMonthStart = new Date(currentYear, currentMonth, 1);
+    
+    // Get first day of last month
+    const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const lastMonthEnd = new Date(currentYear, currentMonth, 0); // Last day of previous month
+    
+    // Calculate current month profits
+    const currentMonthSales = await Product.find({
+      dateSold: { 
+        $gte: currentMonthStart,
+        $lte: now
+      },
+      cost: { $gt: 0 }
+    });
+    
+    const currentMonthProfit = currentMonthSales.reduce((sum, product) => {
+      return sum + (product.price - product.cost);
+    }, 0);
+    
+    // Calculate last month profits  
+    const lastMonthSales = await Product.find({
+      dateSold: { 
+        $gte: lastMonthStart,
+        $lte: lastMonthEnd
+      },
+      cost: { $gt: 0 }
+    });
+    
+    const lastMonthProfit = lastMonthSales.reduce((sum, product) => {
+      return sum + (product.price - product.cost);
+    }, 0);
+    
+    // Calculate 12-month profit history
+    const monthlyProfits = [];
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = new Date(currentYear, currentMonth - i, 1);
+      const monthEnd = new Date(currentYear, currentMonth - i + 1, 0);
+      
+      const monthlySales = await Product.find({
+        dateSold: { 
+          $gte: monthStart,
+          $lte: monthEnd
+        },
+        cost: { $gt: 0 }
+      });
+      
+      const monthProfit = monthlySales.reduce((sum, product) => {
+        return sum + (product.price - product.cost);
+      }, 0);
+      
+      monthlyProfits.push({
+        month: monthStart.toISOString().substring(0, 7), // YYYY-MM format
+        profit: monthProfit,
+        salesCount: monthlySales.length
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        currentMonthProfit,
+        lastMonthProfit,
+        changePercent: lastMonthProfit > 0 ? 
+          ((currentMonthProfit - lastMonthProfit) / lastMonthProfit * 100) : 0,
+        monthlyProfits
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching profit stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching profit statistics',
       error: error.message
     });
   }

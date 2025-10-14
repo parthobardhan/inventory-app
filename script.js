@@ -26,6 +26,7 @@ class InventoryManager {
         await this.loadProducts();
         this.renderProducts();
         this.updateSummary();
+        await this.loadProfitData();
         console.log('✅ InventoryManager initialized successfully');
     }
 
@@ -494,6 +495,9 @@ class InventoryManager {
         document.getElementById('editProductType').value = product.type;
         document.getElementById('editQuantity').value = product.quantity;
         document.getElementById('editPrice').value = product.price;
+        document.getElementById('editCost').value = product.cost || 0;
+        document.getElementById('editDateSold').value = product.dateSold ? 
+            new Date(product.dateSold).toISOString().split('T')[0] : '';
         document.getElementById('editDescription').value = product.description || '';
 
         // Show modal
@@ -508,6 +512,9 @@ class InventoryManager {
         const type = document.getElementById('editProductType').value;
         const quantity = parseInt(document.getElementById('editQuantity').value);
         const price = parseFloat(document.getElementById('editPrice').value);
+        const cost = parseFloat(document.getElementById('editCost').value) || 0;
+        const dateSoldValue = document.getElementById('editDateSold').value;
+        const dateSold = dateSoldValue ? new Date(dateSoldValue) : null;
         const description = document.getElementById('editDescription').value.trim();
 
         if (!name || !type || quantity < 0 || price < 0) {
@@ -526,6 +533,8 @@ class InventoryManager {
                     type,
                     quantity,
                     price,
+                    cost,
+                    dateSold,
                     description
                 })
             });
@@ -567,6 +576,7 @@ class InventoryManager {
         const type = document.getElementById('modalProductType').value;
         const quantity = parseInt(document.getElementById('modalQuantity').value);
         const price = parseFloat(document.getElementById('modalPrice').value);
+        const cost = parseFloat(document.getElementById('modalCost').value) || 0;
         const description = document.getElementById('modalDescription').value.trim();
         const imageFile = document.getElementById('modalProductImage').files[0];
         const generateAI = document.getElementById('modalGenerateAI').checked;
@@ -576,6 +586,7 @@ class InventoryManager {
             type: type,
             quantity: quantity,
             price: price,
+            cost: cost,
             description: description ? description.substring(0, 50) + '...' : 'none',
             hasImage: !!imageFile,
             generateAI: generateAI
@@ -597,6 +608,7 @@ class InventoryManager {
                 type,
                 quantity,
                 price,
+                cost,
                 description
             };
 
@@ -719,6 +731,9 @@ class InventoryManager {
         requiredFields.forEach(fieldId => {
             this.clearFieldError(fieldId);
         });
+        
+        // Clear the cost field specifically
+        document.getElementById('modalCost').value = '';
     }
 
     showModalLoading(show) {
@@ -806,7 +821,6 @@ class InventoryManager {
                     <td>${imageHtml}</td>
                     <td>
                         <strong>${this.escapeHtml(product.name)}</strong>
-                        ${product.description ? `<br><small class="text-muted">${this.escapeHtml(product.description)}</small>` : ''}
                     </td>
                     <td>
                         <span class="type-badge type-${product.type}">
@@ -914,6 +928,54 @@ class InventoryManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Load profit data and update UI
+    async loadProfitData() {
+        try {
+            const response = await fetch('/api/products/stats/profits');
+            const result = await response.json();
+            
+            if (result.success) {
+                const { currentMonthProfit, lastMonthProfit, changePercent } = result.data;
+                
+                // Update current month profit
+                const currentMonthElement = document.getElementById('currentMonthProfit');
+                if (currentMonthElement) {
+                    currentMonthElement.textContent = `$${currentMonthProfit.toFixed(2)}`;
+                }
+                
+                // Update last month profit
+                const lastMonthElement = document.getElementById('lastMonthProfit');
+                if (lastMonthElement) {
+                    lastMonthElement.textContent = `$${lastMonthProfit.toFixed(2)}`;
+                }
+                
+                // Update change percentage
+                const changeElement = document.getElementById('monthlyProfitChange');
+                if (changeElement) {
+                    const isPositive = changePercent >= 0;
+                    const changeText = isPositive ? `+${changePercent.toFixed(1)}%` : `${changePercent.toFixed(1)}%`;
+                    changeElement.textContent = `${changeText} from last month`;
+                    changeElement.className = `profit-change ${isPositive ? 'positive' : 'negative'}`;
+                }
+                
+                console.log('✅ Profit data loaded successfully');
+            } else {
+                console.error('Error loading profit data:', result.message);
+            }
+        } catch (error) {
+            console.error('Error fetching profit data:', error);
+            
+            // Keep default values if API fails
+            const currentMonthElement = document.getElementById('currentMonthProfit');
+            const lastMonthElement = document.getElementById('lastMonthProfit');
+            const changeElement = document.getElementById('monthlyProfitChange');
+            
+            if (currentMonthElement) currentMonthElement.textContent = '$0.00';
+            if (lastMonthElement) lastMonthElement.textContent = '$0.00';
+            if (changeElement) changeElement.textContent = 'Unable to load data';
+        }
     }
 
     // Export data as JSON

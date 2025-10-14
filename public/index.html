@@ -90,14 +90,14 @@
                     <!-- Profit Metrics -->
                     <div class="profit-metrics">
                         <div class="profit-card">
-                            <div class="profit-label">Monthly Profit</div>
-                            <div class="profit-value" id="monthlyProfit">$12,450</div>
-                            <div class="profit-change positive">+15.2% from last month</div>
+                            <div class="profit-label">This Month Profit</div>
+                            <div class="profit-value" id="currentMonthProfit">$0.00</div>
+                            <div class="profit-change" id="monthlyProfitChange">Loading...</div>
                         </div>
                         <div class="profit-card">
-                            <div class="profit-label">Annual Profit</div>
-                            <div class="profit-value" id="annualProfit">$148,200</div>
-                            <div class="profit-change positive">+22.8% from last year</div>
+                            <div class="profit-label">Last Month Profit</div>
+                            <div class="profit-value" id="lastMonthProfit">$0.00</div>
+                            <div class="profit-change" id="lastMonthProfitLabel">For comparison</div>
                         </div>
                     </div>
                     
@@ -180,9 +180,18 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="modalPrice" class="form-label">Price ($) *</label>
+                                    <label for="modalPrice" class="form-label">List Price ($) *</label>
                                     <input type="number" class="form-control" id="modalPrice" min="0" step="0.01" required>
                                     <div class="invalid-feedback" id="modalPriceError"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalCost" class="form-label">Cost ($)</label>
+                                    <input type="number" class="form-control" id="modalCost" min="0" step="0.01" placeholder="0.00">
+                                    <div class="form-text">Cost to calculate profit (optional)</div>
                                 </div>
                             </div>
                         </div>
@@ -277,8 +286,18 @@
                             <input type="number" class="form-control" id="editQuantity" min="0" required>
                         </div>
                         <div class="mb-3">
-                            <label for="editPrice" class="form-label">Price ($)</label>
+                            <label for="editPrice" class="form-label">List Price ($)</label>
                             <input type="number" class="form-control" id="editPrice" min="0" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCost" class="form-label">Cost ($)</label>
+                            <input type="number" class="form-control" id="editCost" min="0" step="0.01" placeholder="0.00">
+                            <div class="form-text">Cost to calculate profit (optional)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDateSold" class="form-label">Date Sold</label>
+                            <input type="date" class="form-control" id="editDateSold">
+                            <div class="form-text">Set date when item was sold to calculate profit</div>
                         </div>
                         <div class="mb-3">
                             <label for="editDescription" class="form-label">Description</label>

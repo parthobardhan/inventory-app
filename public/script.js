@@ -761,7 +761,7 @@ class InventoryManager {
         if (this.filteredProducts.length === 0) {
             tbody.innerHTML = `
                 <tr id="emptyState">
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="7" class="text-center text-muted py-4">
                         <i class="fas fa-box-open fa-2x mb-2"></i>
                         <br>
                         No products in inventory. Add your first product to get started!
@@ -771,34 +771,75 @@ class InventoryManager {
             return;
         }
 
-        tbody.innerHTML = this.filteredProducts.map(product => `
-            <tr>
-                <td>
-                    <strong>${this.escapeHtml(product.name)}</strong>
-                    ${product.description ? `<br><small class="text-muted">${this.escapeHtml(product.description)}</small>` : ''}
-                </td>
-                <td>
-                    <span class="type-badge type-${product.type}">
-                        ${this.formatProductType(product.type)}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge ${product.quantity === 0 ? 'bg-danger' : product.quantity < 10 ? 'bg-warning' : 'bg-success'}">
-                        ${product.quantity}
-                    </span>
-                </td>
-                <td>$${product.price.toFixed(2)}</td>
-                <td><strong>$${product.totalValue.toFixed(2)}</strong></td>
-                <td>
-                    <button class="btn btn-outline-primary btn-sm me-1 edit-btn" data-product-id="${product._id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm delete-btn" data-product-id="${product._id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = this.filteredProducts.map(product => {
+            // Get the primary image thumbnail
+            const thumbnail = this.getProductThumbnail(product);
+            
+            return `
+                <tr>
+                    <td style="width: 80px;">
+                        ${thumbnail}
+                    </td>
+                    <td>
+                        <strong>${this.escapeHtml(product.name)}</strong>
+                    </td>
+                    <td>
+                        <span class="type-badge type-${product.type}">
+                            ${this.formatProductType(product.type)}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${product.quantity === 0 ? 'bg-danger' : product.quantity < 10 ? 'bg-warning' : 'bg-success'}">
+                            ${product.quantity}
+                        </span>
+                    </td>
+                    <td>$${product.price.toFixed(2)}</td>
+                    <td><strong>$${product.totalValue.toFixed(2)}</strong></td>
+                    <td>
+                        <button class="btn btn-outline-primary btn-sm me-1 edit-btn" data-product-id="${product._id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm delete-btn" data-product-id="${product._id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    getProductThumbnail(product) {
+        // Check if product has images
+        if (product.images && product.images.length > 0) {
+            // Find primary image or use first image
+            const primaryImage = product.images.find(img => img.id === product.primaryImageId) || product.images[0];
+            
+            return `
+                <div class="product-thumbnail">
+                    <img src="${primaryImage.url}" alt="${this.escapeHtml(product.name)}" 
+                         class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
+                         onclick="this.classList.toggle('enlarged')"
+                         title="Click to enlarge">
+                </div>
+            `;
+        } else {
+            // No image available - show placeholder based on product type
+            const iconMap = {
+                'bed-covers': 'fa-bed',
+                'cushion-covers': 'fa-couch',
+                'sarees': 'fa-tshirt',
+                'towels': 'fa-bath'
+            };
+            
+            const icon = iconMap[product.type] || 'fa-box';
+            
+            return `
+                <div class="product-thumbnail d-flex align-items-center justify-content-center bg-light rounded" 
+                     style="width: 60px; height: 60px;">
+                    <i class="fas ${icon} text-muted"></i>
+                </div>
+            `;
+        }
     }
 
     async updateSummary() {
