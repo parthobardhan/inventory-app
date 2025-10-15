@@ -23,6 +23,11 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
 - **Image upload** with AI-powered descriptions
 
 ### 🤖 AI Integration
+- **AI Agent Assistant** 🆕: Natural language interface for inventory management
+  - Talk to your inventory using plain English
+  - Add products, record sales, view analytics with simple commands
+  - Powered by GPT-4o-mini with function calling
+  - Example: "Add 50 blue bed covers for $25" or "Show me this week's sales"
 - **Dual AI Service Support**: OpenAI GPT-4o-mini (production) and Ollama LLaVA (development)
 - **Automatic product descriptions** using advanced vision-language models
 - **Image analysis** for product categorization and description generation
@@ -121,6 +126,30 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
    ```
    http://localhost:3000
    ```
+
+## 🤖 AI Agent Setup (New Feature!)
+
+The inventory app now includes an **AI Assistant** that understands natural language commands!
+
+### Quick Setup
+
+1. **Get an OpenAI API key** from [platform.openai.com](https://platform.openai.com)
+2. **Add to your `dev.env` file:**
+   ```
+   OPENAI_API_KEY=sk-your-key-here
+   ```
+3. **Restart the server** and look for the purple "AI Assistant" banner on the homepage
+4. **Click "Start Chat"** and start talking to your inventory!
+
+### Example Commands
+
+- "Add 50 blue cotton bed covers for $25"
+- "Show me this week's sales analytics"
+- "What products are low in stock?"
+- "Record a sale of 10 towels"
+- "Open the bed covers catalog"
+
+📖 **For detailed setup and usage guide, see [AI_AGENT_SETUP.md](./AI_AGENT_SETUP.md)**
 
 ### 🚀 Production Deployment
 

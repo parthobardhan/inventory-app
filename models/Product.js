@@ -7,6 +7,15 @@ const productSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Product name cannot exceed 100 characters']
   },
+  sku: {
+    type: String,
+    required: [true, 'SKU is required'],
+    unique: true,
+    trim: true,
+    uppercase: true,
+    maxlength: [50, 'SKU cannot exceed 50 characters'],
+    match: [/^[A-Z0-9\-_]+$/, 'SKU can only contain uppercase letters, numbers, hyphens, and underscores']
+  },
   type: {
     type: String,
     required: [true, 'Product type is required'],
@@ -194,6 +203,7 @@ productSchema.pre('findOneAndUpdate', function(next) {
 
 // Index for better query performance
 productSchema.index({ type: 1 });
+productSchema.index({ sku: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ dateSold: 1 }); // For profit calculations
 
