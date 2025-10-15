@@ -912,11 +912,23 @@ router.post('/sell', checkDBConnection, async (req, res) => {
       });
     }
     
-    // Verify SKU matches
-    if (product.sku !== sku.toUpperCase()) {
+    // Check if product has SKU
+    if (!product.sku) {
       return res.status(400).json({
         success: false,
-        message: 'SKU does not match product'
+        message: 'Product does not have a SKU assigned. Please edit the product to add a SKU before recording sales.'
+      });
+    }
+    
+    // Verify SKU matches
+    const normalizedSku = sku ? sku.toUpperCase().trim() : '';
+    const productSku = product.sku ? product.sku.toUpperCase().trim() : '';
+    
+    if (productSku !== normalizedSku) {
+      console.error(`SKU mismatch: Product SKU="${productSku}", Provided SKU="${normalizedSku}"`);
+      return res.status(400).json({
+        success: false,
+        message: `SKU mismatch. Expected "${productSku}" but received "${normalizedSku}"`
       });
     }
     

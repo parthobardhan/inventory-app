@@ -849,6 +849,13 @@ class InventoryManager {
             return;
         }
         
+        // Validate that SKU exists
+        if (!sku || sku === 'undefined' || sku === 'null') {
+            console.error('Product does not have a SKU. Cannot sell.');
+            this.showAlert('This product does not have a SKU assigned. Please edit the product to add a SKU before selling.', 'error');
+            return;
+        }
+        
         // Set modal data with null checks
         const sellProductId = document.getElementById('sellProductId');
         const sellProductSku = document.getElementById('sellProductSku');
@@ -870,11 +877,11 @@ class InventoryManager {
         
         // Set modal data
         sellProductId.value = productId;
-        sellProductSku.value = sku;
+        sellProductSku.value = sku.toUpperCase(); // Ensure uppercase
         sellMaxQuantity.value = maxQuantity;
         
         // Display product info
-        sellProductSkuDisplay.textContent = sku;
+        sellProductSkuDisplay.textContent = sku.toUpperCase();
         sellAvailableQuantity.textContent = maxQuantity;
         
         // Set default date to today
@@ -1040,9 +1047,15 @@ class InventoryManager {
                     <td>$${product.price.toFixed(2)}</td>
                     <td><strong>$${product.totalValue.toFixed(2)}</strong></td>
                     <td>
+                        ${product.sku ? `
                         <button class="btn btn-outline-success btn-sm me-1 sell-btn" data-product-id="${product._id}" data-sku="${product.sku}" data-max-quantity="${product.quantity}" title="Sell Product">
                             <i class="fas fa-dollar-sign"></i>
                         </button>
+                        ` : `
+                        <button class="btn btn-outline-secondary btn-sm me-1" disabled title="Add SKU to enable selling">
+                            <i class="fas fa-dollar-sign"></i>
+                        </button>
+                        `}
                         <button class="btn btn-outline-primary btn-sm me-1 edit-btn" data-product-id="${product._id}">
                             <i class="fas fa-edit"></i>
                         </button>
