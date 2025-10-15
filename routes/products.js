@@ -933,13 +933,15 @@ router.post('/sell', checkDBConnection, async (req, res) => {
       skuValue: JSON.stringify(product.sku)
     });
     
-    // Check if product has SKU with proper validation
-    const productSku = product.sku?.trim();
+    // IMPORTANT: Use productObj.sku instead of product.sku
+    // Mongoose may not expose the SKU via the model property, but it's in the raw object
+    const productSku = (productObj.sku || product.sku)?.trim();
     if (!productSku || productSku === '' || productSku === 'undefined' || productSku === 'null') {
       console.error('❌ [SELL] Product missing or invalid SKU:', {
         productId: product._id,
         name: product.name,
         skuRaw: product.sku,
+        skuFromObject: productObj.sku,
         skuTrimmed: productSku,
         allFields: Object.keys(productObj)
       });
@@ -950,6 +952,8 @@ router.post('/sell', checkDBConnection, async (req, res) => {
         productName: product.name
       });
     }
+    
+    console.log('✅ [SELL] Using SKU:', productSku);
     
     // Verify SKU matches
     const normalizedSku = sku ? sku.toUpperCase().trim() : '';
@@ -976,13 +980,13 @@ router.post('/sell', checkDBConnection, async (req, res) => {
     
     try {
       await session.withTransaction(async () => {
-        // Create sale record
+        // Create sale record - use the validated product SKU
         const saleData = {
           productId,
-          sku: sku.toUpperCase(),
+          sku: normalizedProductSku,
           quantity: parseInt(quantity),
           sellPrice: parseFloat(sellPrice),
-          cost: product.cost || 0, // Get cost from product
+          cost: product.cost || productObj.cost || 0, // Get cost from product
           dateSold: new Date(dateSold)
         };
         
@@ -999,11 +1003,17 @@ router.post('/sell', checkDBConnection, async (req, res) => {
       
       await session.commitTransaction();
       
+      console.log('✅ [SELL] Sale completed successfully:', {
+        sku: normalizedProductSku,
+        quantity,
+        sellPrice
+      });
+      
       res.json({
         success: true,
-        message: `Successfully sold ${quantity} units of ${sku}`,
+        message: `Successfully sold ${quantity} units of ${normalizedProductSku}`,
         data: {
-          sku,
+          sku: normalizedProductSku,
           quantity,
           sellPrice,
           dateSold,
