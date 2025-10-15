@@ -881,6 +881,14 @@ router.post('/sell', checkDBConnection, async (req, res) => {
   try {
     const { productId, sku, quantity, sellPrice, dateSold } = req.body;
     
+    console.log('📥 [SELL] Received sale request:', {
+      productId,
+      sku,
+      quantity,
+      sellPrice,
+      dateSold
+    });
+    
     // Validation
     if (!productId || !sku || !quantity || !sellPrice || !dateSold) {
       return res.status(400).json({
@@ -912,8 +920,22 @@ router.post('/sell', checkDBConnection, async (req, res) => {
       });
     }
     
+    // Debug logging
+    console.log('🔍 [SELL] Product found:', {
+      id: product._id,
+      name: product.name,
+      sku: product.sku,
+      skuType: typeof product.sku,
+      skuLength: product.sku ? product.sku.length : 'null/undefined'
+    });
+    
     // Check if product has SKU
     if (!product.sku) {
+      console.error('❌ [SELL] Product missing SKU:', {
+        productId: product._id,
+        name: product.name,
+        allFields: Object.keys(product.toObject())
+      });
       return res.status(400).json({
         success: false,
         message: 'Product does not have a SKU assigned. Please edit the product to add a SKU before recording sales.'
