@@ -4,8 +4,13 @@
   "public": true,
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "src": "/manifest.json",
+      "dest": "/public/manifest.json",
+      "headers": {
+        "Content-Type": "application/manifest+json",
+        "Cache-Control": "public, max-age=3600",
+        "Access-Control-Allow-Origin": "*"
+      }
     },
     {
       "src": "/sw.js",
@@ -17,12 +22,8 @@
       }
     },
     {
-      "src": "/manifest.json",
-      "dest": "/public/manifest.json",
-      "headers": {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=31536000"
-      }
+      "src": "/api/(.*)",
+      "dest": "/server.js"
     },
     {
       "src": "/icons/(.*)",

@@ -79,14 +79,19 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Serve PWA files before rate limiting to prevent 401 errors
+// Handle CORS preflight for API routes
+app.options('/api/*', cors());
+
+// Serve PWA files before rate limiting to prevent errors
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
-  res.setHeader('Cache-Control', 'public, max-age=31536000');
-  res.sendFile(path.join(__dirname, 'public', 'manifest.json'), (err) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const manifestPath = path.join(__dirname, 'public', 'manifest.json');
+  res.sendFile(manifestPath, (err) => {
     if (err) {
       console.error('Error serving manifest.json:', err);
-      res.status(404).json({ error: 'Manifest not found' });
+      res.status(err.status || 500).send('Manifest not found');
     }
   });
 });

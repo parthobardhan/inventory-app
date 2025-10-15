@@ -632,25 +632,47 @@ class InventoryManager {
             price: product.price
         });
 
+        // Check if modal elements exist
+        const modalElement = document.getElementById('editProductModal');
+        if (!modalElement) {
+            console.error('Edit modal not found on this page');
+            this.showAlert('Edit modal is not available on this page. Please use the inventory page.', 'error');
+            return;
+        }
+
+        // Get form elements with null checks
+        const editProductId = document.getElementById('editProductId');
+        const editProductName = document.getElementById('editProductName');
+        const editProductSku = document.getElementById('editProductSku');
+        const editProductType = document.getElementById('editProductType');
+        const editQuantity = document.getElementById('editQuantity');
+        const editPrice = document.getElementById('editPrice');
+
+        if (!editProductId || !editProductName || !editProductSku || !editProductType || !editQuantity || !editPrice) {
+            console.error('Required modal form elements not found');
+            this.showAlert('Modal form elements are missing. Please refresh the page.', 'error');
+            return;
+        }
+
         // Populate edit form
-        document.getElementById('editProductId').value = product._id;
-        document.getElementById('editProductName').value = product.name;
-        document.getElementById('editProductSku').value = product.sku || '';
-        document.getElementById('editProductType').value = product.type;
-        document.getElementById('editQuantity').value = product.quantity;
-        document.getElementById('editPrice').value = product.price;
+        editProductId.value = product._id;
+        editProductName.value = product.name;
+        editProductSku.value = product.sku || '';
+        editProductType.value = product.type;
+        editQuantity.value = product.quantity;
+        editPrice.value = product.price;
 
         console.warn('📝 [CLIENT] Form populated with values:', {
-            id: document.getElementById('editProductId').value,
-            name: document.getElementById('editProductName').value,
-            sku: document.getElementById('editProductSku').value,
-            type: document.getElementById('editProductType').value,
-            quantity: document.getElementById('editQuantity').value,
-            price: document.getElementById('editPrice').value
+            id: editProductId.value,
+            name: editProductName.value,
+            sku: editProductSku.value,
+            type: editProductType.value,
+            quantity: editQuantity.value,
+            price: editPrice.value
         });
 
         // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     }
 
@@ -819,35 +841,61 @@ class InventoryManager {
         const sku = sellButton.dataset.sku;
         const maxQuantity = parseInt(sellButton.dataset.maxQuantity);
         
+        // Check if modal elements exist
+        const modalElement = document.getElementById('sellProductModal');
+        if (!modalElement) {
+            console.error('Sell modal not found on this page');
+            this.showAlert('Sell modal is not available on this page. Please use the inventory page.', 'error');
+            return;
+        }
+        
+        // Set modal data with null checks
+        const sellProductId = document.getElementById('sellProductId');
+        const sellProductSku = document.getElementById('sellProductSku');
+        const sellMaxQuantity = document.getElementById('sellMaxQuantity');
+        const sellProductSkuDisplay = document.getElementById('sellProductSkuDisplay');
+        const sellAvailableQuantity = document.getElementById('sellAvailableQuantity');
+        const sellDate = document.getElementById('sellDate');
+        const sellQuantityInput = document.getElementById('sellQuantity');
+        const sellPrice = document.getElementById('sellPrice');
+        const sellQuantityError = document.getElementById('sellQuantityError');
+        const sellPriceError = document.getElementById('sellPriceError');
+        
+        if (!sellProductId || !sellProductSku || !sellMaxQuantity || !sellProductSkuDisplay || 
+            !sellAvailableQuantity || !sellDate || !sellQuantityInput || !sellPrice) {
+            console.error('Required modal elements not found');
+            this.showAlert('Modal elements are missing. Please refresh the page.', 'error');
+            return;
+        }
+        
         // Set modal data
-        document.getElementById('sellProductId').value = productId;
-        document.getElementById('sellProductSku').value = sku;
-        document.getElementById('sellMaxQuantity').value = maxQuantity;
+        sellProductId.value = productId;
+        sellProductSku.value = sku;
+        sellMaxQuantity.value = maxQuantity;
         
         // Display product info
-        document.getElementById('sellProductSkuDisplay').textContent = sku;
-        document.getElementById('sellAvailableQuantity').textContent = maxQuantity;
+        sellProductSkuDisplay.textContent = sku;
+        sellAvailableQuantity.textContent = maxQuantity;
         
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('sellDate').value = today;
+        sellDate.value = today;
         
         // Set max quantity for input validation
-        const sellQuantityInput = document.getElementById('sellQuantity');
         sellQuantityInput.max = maxQuantity;
         sellQuantityInput.value = 1;
         
         // Clear previous values
-        document.getElementById('sellPrice').value = '';
+        sellPrice.value = '';
         
         // Clear validation errors
-        document.getElementById('sellQuantityError').textContent = '';
-        document.getElementById('sellPriceError').textContent = '';
+        if (sellQuantityError) sellQuantityError.textContent = '';
+        if (sellPriceError) sellPriceError.textContent = '';
         sellQuantityInput.classList.remove('is-invalid');
-        document.getElementById('sellPrice').classList.remove('is-invalid');
+        sellPrice.classList.remove('is-invalid');
         
         // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('sellProductModal'));
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     }
     
@@ -1089,6 +1137,16 @@ class InventoryManager {
 
     async updateProfitMetrics() {
         try {
+            // Check if profit metric elements exist on this page before making API call
+            const currentMonthEl = document.getElementById('currentMonthProfit');
+            const lastMonthEl = document.getElementById('lastMonthProfit');
+            
+            // If the profit metric elements don't exist, skip the update (likely on inventory page)
+            if (!currentMonthEl && !lastMonthEl) {
+                console.log('ℹ️  [CLIENT] Profit metric elements not found on this page, skipping update');
+                return;
+            }
+            
             console.log('💰 [CLIENT] Fetching profit metrics...');
             const response = await fetch(`${this.apiBase}/stats/profits`);
             const result = await response.json();
@@ -1102,9 +1160,7 @@ class InventoryManager {
                     lastMonth: profits.lastMonth
                 });
                 
-                // Update current month profit
-                const currentMonthEl = document.getElementById('currentMonthProfit');
-                const lastMonthEl = document.getElementById('lastMonthProfit');
+                // Get other elements
                 const changeEl = document.getElementById('monthlyProfitChange');
                 const lastMonthLabelEl = document.getElementById('lastMonthProfitLabel');
                 
@@ -1118,15 +1174,11 @@ class InventoryManager {
                 if (currentMonthEl) {
                     currentMonthEl.textContent = `$${profits.currentMonth.toFixed(2)}`;
                     console.log('✅ [CLIENT] Updated currentMonthProfit to:', currentMonthEl.textContent);
-                } else {
-                    console.warn('⚠️  [CLIENT] currentMonthProfit element not found');
                 }
                 
                 if (lastMonthEl) {
                     lastMonthEl.textContent = `$${profits.lastMonth.toFixed(2)}`;
                     console.log('✅ [CLIENT] Updated lastMonthProfit to:', lastMonthEl.textContent);
-                } else {
-                    console.warn('⚠️  [CLIENT] lastMonthProfit element not found');
                 }
                 
                 if (changeEl) {
