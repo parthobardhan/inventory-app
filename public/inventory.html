@@ -103,39 +103,8 @@
         </div>
 
         <div class="row">
-            <!-- Inventory Summary Sidebar -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-chart-bar me-2"></i>
-                            Inventory Summary
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="inventorySummary">
-                            <div class="row text-center mb-4">
-                                <div class="col-12 mb-3">
-                                    <div class="analytics-metric-card border rounded p-3 mb-2">
-                                        <h6 class="text-muted mb-1">Total Products</h6>
-                                        <h3 class="text-primary mb-0 fw-bold" id="totalProducts">0</h3>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="analytics-metric-card border rounded p-3 mb-2">
-                                        <h6 class="text-muted mb-1">Total Value</h6>
-                                        <h3 class="text-success mb-0 fw-bold" id="totalValue">$0.00</h3>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="typeBreakdown" class="mb-4"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Main Inventory Table -->
-            <div class="col-md-9">
+            <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h5 class="card-title mb-0">
@@ -166,6 +135,7 @@
                                     <tr>
                                         <th>Image</th>
                                         <th>Product Name</th>
+                                        <th>SKU</th>
                                         <th>Type</th>
                                         <th>Quantity</th>
                                         <th>List Price</th>
@@ -175,7 +145,7 @@
                                 </thead>
                                 <tbody id="productTableBody">
                                     <tr id="emptyState">
-                                        <td colspan="7" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             <i class="fas fa-box-open fa-2x mb-2"></i>
                                             <br>
                                             No products in inventory. Add your first product to get started!
@@ -211,6 +181,23 @@
                                     <div class="invalid-feedback" id="modalProductNameError"></div>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modalProductSku" class="form-label">SKU *</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="modalProductSku" required
+                                               pattern="[A-Z0-9\-_]+" title="SKU can only contain uppercase letters, numbers, hyphens, and underscores"
+                                               placeholder="e.g., BC-001, CC-RED-L">
+                                        <button class="btn btn-outline-secondary" type="button" id="generateSkuBtn" title="Generate SKU suggestion">
+                                            <i class="fas fa-magic"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Unique product identifier. Click the magic wand to generate a suggestion.</div>
+                                    <div class="invalid-feedback" id="modalProductSkuError"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="modalProductType" class="form-label">Product Type *</label>
@@ -319,9 +306,21 @@
                 <div class="modal-body">
                     <form id="editProductForm">
                         <input type="hidden" id="editProductId">
-                        <div class="mb-3">
-                            <label for="editProductName" class="form-label">Product Name</label>
-                            <input type="text" class="form-control" id="editProductName" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductName" class="form-label">Product Name</label>
+                                    <input type="text" class="form-control" id="editProductName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductSku" class="form-label">SKU</label>
+                                    <input type="text" class="form-control" id="editProductSku" required
+                                           pattern="[A-Z0-9\-_]+" title="SKU can only contain uppercase letters, numbers, hyphens, and underscores"
+                                           placeholder="e.g., BC-001, CC-RED-L">
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="editProductType" class="form-label">Product Type</label>
@@ -345,6 +344,57 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sell Product Modal -->
+    <div class="modal fade" id="sellProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-dollar-sign me-2"></i>
+                        Sell Product
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sellProductForm">
+                        <input type="hidden" id="sellProductId">
+                        <input type="hidden" id="sellProductSku">
+                        <input type="hidden" id="sellMaxQuantity">
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Product SKU:</strong></label>
+                            <div id="sellProductSkuDisplay" class="form-control-plaintext fw-bold text-primary"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellQuantity" class="form-label">Quantity to Sell *</label>
+                            <input type="number" class="form-control" id="sellQuantity" min="1" required>
+                            <div class="form-text">Available quantity: <span id="sellAvailableQuantity" class="fw-bold text-success">0</span></div>
+                            <div class="invalid-feedback" id="sellQuantityError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellPrice" class="form-label">Sell Price ($) *</label>
+                            <input type="number" class="form-control" id="sellPrice" min="0" step="0.01" required>
+                            <div class="invalid-feedback" id="sellPriceError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellDate" class="form-label">Date Sold *</label>
+                            <input type="date" class="form-control" id="sellDate" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSellBtn">
+                        <i class="fas fa-dollar-sign me-2"></i>Confirm Sale
+                    </button>
                 </div>
             </div>
         </div>
