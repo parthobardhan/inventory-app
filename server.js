@@ -138,12 +138,14 @@ const connectDB = async () => {
     }
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000, // Increased timeout for serverless
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      maxPoolSize: 1, // Maintain up to 1 socket connection for serverless
-      minPoolSize: 0, // Allow connection pool to close all connections
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      connectTimeoutMS: 10000, // Connection timeout
+      serverSelectionTimeoutMS: 30000, // 30s for serverless cold start
+      socketTimeoutMS: 75000, // 75s socket timeout
+      connectTimeoutMS: 30000, // 30s connection timeout
+      maxPoolSize: 1, // Single connection for serverless
+      minPoolSize: 0, // Allow pool to close
+      maxIdleTimeMS: 10000, // Close idle after 10s
+      retryWrites: true,
+      w: 'majority'
     });
 
     console.warn(`✅ [DB] MongoDB Connected: ${conn.connection.host}`);
