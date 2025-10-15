@@ -82,7 +82,21 @@ app.use(cors());
 // Handle CORS preflight for API routes
 app.options('/api/*', cors());
 
-// Serve PWA files before rate limiting to prevent errors
+// Serve static files FIRST, before rate limiting
+// This ensures CSS, JS, images, and other static assets are served without authentication
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json');
+    }
+  }
+}));
+
+// Serve PWA files explicitly to ensure proper headers
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -102,9 +116,6 @@ app.get('/manifest.json', (req, res) => {
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB connection
 const connectDB = async () => {
