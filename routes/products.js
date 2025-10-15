@@ -920,37 +920,46 @@ router.post('/sell', checkDBConnection, async (req, res) => {
       });
     }
     
-    // Debug logging
+    // Debug logging - check raw document
+    const productObj = product.toObject();
     console.log('🔍 [SELL] Product found:', {
       id: product._id,
       name: product.name,
       sku: product.sku,
+      skuFromObject: productObj.sku,
       skuType: typeof product.sku,
-      skuLength: product.sku ? product.sku.length : 'null/undefined'
+      skuLength: product.sku ? product.sku.length : 'null/undefined',
+      hasOwnProperty: product.hasOwnProperty('sku'),
+      skuValue: JSON.stringify(product.sku)
     });
     
-    // Check if product has SKU
-    if (!product.sku) {
-      console.error('❌ [SELL] Product missing SKU:', {
+    // Check if product has SKU with proper validation
+    const productSku = product.sku?.trim();
+    if (!productSku || productSku === '' || productSku === 'undefined' || productSku === 'null') {
+      console.error('❌ [SELL] Product missing or invalid SKU:', {
         productId: product._id,
         name: product.name,
-        allFields: Object.keys(product.toObject())
+        skuRaw: product.sku,
+        skuTrimmed: productSku,
+        allFields: Object.keys(productObj)
       });
       return res.status(400).json({
         success: false,
-        message: 'Product does not have a SKU assigned. Please edit the product to add a SKU before recording sales.'
+        message: `Product "${product.name}" does not have a valid SKU assigned. Please edit the product to add a SKU before recording sales.`,
+        productId: product._id.toString(),
+        productName: product.name
       });
     }
     
     // Verify SKU matches
     const normalizedSku = sku ? sku.toUpperCase().trim() : '';
-    const productSku = product.sku ? product.sku.toUpperCase().trim() : '';
+    const normalizedProductSku = productSku.toUpperCase().trim();
     
-    if (productSku !== normalizedSku) {
-      console.error(`SKU mismatch: Product SKU="${productSku}", Provided SKU="${normalizedSku}"`);
+    if (normalizedProductSku !== normalizedSku) {
+      console.error(`SKU mismatch: Product SKU="${normalizedProductSku}", Provided SKU="${normalizedSku}"`);
       return res.status(400).json({
         success: false,
-        message: `SKU mismatch. Expected "${productSku}" but received "${normalizedSku}"`
+        message: `SKU mismatch. Expected "${normalizedProductSku}" but received "${normalizedSku}"`
       });
     }
     
