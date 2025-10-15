@@ -1,0 +1,174 @@
+/* Modal Components */
+
+/* Modal Backdrop */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Modal Dialog */
+.modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 500px;
+}
+
+.modal-dialog-lg {
+    max-width: 800px;
+}
+
+.modal-dialog-sm {
+    max-width: 300px;
+}
+
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 3.5rem);
+}
+
+/* Modal Content */
+.modal-content {
+    background-color: #fff;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-clip: padding-box;
+    outline: 0;
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid #e9ecef;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.modal-title {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.5rem;
+    color: #000;
+    margin-bottom: 0;
+    line-height: 1.4;
+}
+
+/* Modal Body */
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 2rem;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 1rem 2rem 2rem;
+    border-top: 1px solid #e9ecef;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    gap: 1rem;
+}
+
+.modal-footer > * {
+    margin: 0;
+}
+
+/* Close Button */
+.btn-close {
+    box-sizing: content-box;
+    width: 1em;
+    height: 1em;
+    padding: 0.25em 0.25em;
+    color: #000;
+    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='m.235 1.388 1.388-.235L8 7.531l6.377-6.378 1.388.235L9.387 8l6.378 6.377-.235 1.388L8 9.387l-6.377 6.378-1.388-.235L6.613 8z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+    border: 0;
+    border-radius: 0.25rem;
+    opacity: 0.5;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.btn-close:hover {
+    color: #000;
+    text-decoration: none;
+    opacity: 0.75;
+}
+
+.btn-close:focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.25);
+    opacity: 1;
+}
+
+/* Modal Animations */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* Confirmation Modal */
+.confirmation-modal .modal-dialog {
+    max-width: 400px;
+}
+
+.confirmation-modal .modal-body {
+    text-align: center;
+    padding: 2rem 2rem 1rem;
+}
+
+.confirmation-modal .modal-body i {
+    font-size: 3rem;
+    color: #ffc107;
+    margin-bottom: 1rem;
+}
+
+.confirmation-modal .modal-body h5 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #000;
+}
+
+.confirmation-modal .modal-body p {
+    color: #666;
+    margin-bottom: 0;
+}
+
+/* Loading Modal */
+.loading-modal .modal-body {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.loading-modal .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Responsive Modal */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}

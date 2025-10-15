@@ -1,0 +1,234 @@
+/* Alert and Notification Components */
+
+/* Alert Container */
+.alert-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    max-width: 400px;
+}
+
+/* Base Alert */
+.alert {
+    position: relative;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.alert i {
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+/* Alert Variants */
+.alert-primary {
+    color: #084298;
+    background-color: #cff4fc;
+    border-color: #b6effb;
+}
+
+.alert-secondary {
+    color: #41464b;
+    background-color: #e2e3e5;
+    border-color: #d3d6d8;
+}
+
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+.alert-warning {
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+}
+
+.alert-info {
+    color: #055160;
+    background-color: #d1ecf1;
+    border-color: #b8daff;
+}
+
+.alert-light {
+    color: #636464;
+    background-color: #fefefe;
+    border-color: #fdfdfe;
+}
+
+.alert-dark {
+    color: #141619;
+    background-color: #d3d3d4;
+    border-color: #bcbebf;
+}
+
+/* Alert Links */
+.alert-link {
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.alert-primary .alert-link {
+    color: #06357a;
+}
+
+.alert-secondary .alert-link {
+    color: #373b3e;
+}
+
+.alert-success .alert-link {
+    color: #0c4128;
+}
+
+.alert-danger .alert-link {
+    color: #6f1e25;
+}
+
+.alert-warning .alert-link {
+    color: #523e02;
+}
+
+.alert-info .alert-link {
+    color: #04414d;
+}
+
+/* Dismissible Alerts */
+.alert-dismissible {
+    padding-right: 3rem;
+}
+
+.alert-dismissible .btn-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    padding: 1.25rem 1rem;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1055;
+}
+
+.toast {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 350px;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.toast-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+}
+
+.toast-header strong {
+    margin-right: auto;
+    color: #000;
+}
+
+.toast-body {
+    padding: 1rem;
+    color: #000;
+}
+
+/* Progress Bars in Alerts */
+.alert .progress {
+    margin-top: 0.5rem;
+    height: 4px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.alert-success .progress-bar {
+    background-color: #198754;
+}
+
+.alert-danger .progress-bar {
+    background-color: #dc3545;
+}
+
+.alert-warning .progress-bar {
+    background-color: #ffc107;
+}
+
+.alert-info .progress-bar {
+    background-color: #0dcaf0;
+}
+
+/* Loading States in Alerts */
+.alert .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Animation for alerts */
+.alert.fade-in {
+    animation: fadeInRight 0.3s ease-out;
+}
+
+.alert.fade-out {
+    animation: fadeOutRight 0.3s ease-out;
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* Responsive Alerts */
+@media (max-width: 576px) {
+    .alert-container,
+    .toast-container {
+        left: 1rem;
+        right: 1rem;
+        top: 1rem;
+    }
+    
+    .toast {
+        max-width: 100%;
+    }
+}
