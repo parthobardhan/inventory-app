@@ -121,6 +121,14 @@ class InventoryManager {
             });
         }
 
+        // Confirm sell button
+        const confirmSellBtn = document.getElementById('confirmSellBtn');
+        if (confirmSellBtn) {
+            confirmSellBtn.addEventListener('click', () => {
+                this.confirmSale();
+            });
+        }
+
         // Edit product modal save button
         const saveEditBtn = document.getElementById('saveEditBtn');
         if (saveEditBtn) {
@@ -184,6 +192,17 @@ class InventoryManager {
             console.error('❌ Modal edit description button not found during event binding');
         }
 
+        // SKU generation button
+        const generateSkuBtn = document.getElementById('generateSkuBtn');
+        if (generateSkuBtn) {
+            generateSkuBtn.addEventListener('click', () => {
+                this.generateSkuSuggestion();
+            });
+            console.warn('✅ SKU generation button event listener attached');
+        } else {
+            console.error('❌ SKU generation button not found during event binding');
+        }
+
         // Event delegation for edit and delete buttons
         const productTableBody = document.getElementById('productTableBody');
         if (productTableBody) {
@@ -198,6 +217,8 @@ class InventoryManager {
                     this.editProduct(productId);
                 } else if (button.classList.contains('delete-btn')) {
                     this.deleteProduct(productId);
+                } else if (button.classList.contains('sell-btn')) {
+                    this.openSellModal(button);
                 }
             });
         }
@@ -447,6 +468,7 @@ class InventoryManager {
         console.warn('🔍 [CLIENT] Getting form values...');
         
         const name = document.getElementById('modalProductName').value.trim();
+        const sku = document.getElementById('modalProductSku').value.trim().toUpperCase();
         const type = document.getElementById('modalProductType').value;
         const quantity = parseInt(document.getElementById('modalQuantity').value);
         const price = parseFloat(document.getElementById('modalPrice').value);
@@ -454,6 +476,7 @@ class InventoryManager {
         
         console.warn('📝 [CLIENT] Form values extracted:', {
             name: name,
+            sku: sku,
             type: type,
             quantity: quantity,
             price: price,
@@ -462,7 +485,7 @@ class InventoryManager {
         const imageFile = document.getElementById('modalProductImage').files[0];
         const generateAI = document.getElementById('modalGenerateAI').checked;
 
-        if (!name || !type || quantity < 0 || price < 0) {
+        if (!name || !sku || !type || quantity < 0 || price < 0) {
             this.showAlert('Please fill in all required fields with valid values.', 'danger');
             return;
         }
@@ -476,6 +499,7 @@ class InventoryManager {
                 
                 const requestBody = {
                     name,
+                    sku,
                     type,
                     quantity,
                     price,
@@ -553,6 +577,7 @@ class InventoryManager {
                 const optimisticProduct = {
                     _id: 'temp_' + Date.now(),
                     name,
+                    sku,
                     type,
                     quantity,
                     price,
@@ -589,16 +614,40 @@ class InventoryManager {
     }
 
     async editProduct(id) {
+        console.warn('✏️ [CLIENT] editProduct() called with ID:', id);
+        
         const product = this.products.find(p => p._id === id);
-        if (!product) return;
+        if (!product) {
+            console.error('❌ [CLIENT] Product not found with ID:', id);
+            this.showAlert('Product not found', 'danger');
+            return;
+        }
+
+        console.warn('📋 [CLIENT] Product found for editing:', {
+            id: product._id,
+            name: product.name,
+            sku: product.sku,
+            type: product.type,
+            quantity: product.quantity,
+            price: product.price
+        });
 
         // Populate edit form
         document.getElementById('editProductId').value = product._id;
         document.getElementById('editProductName').value = product.name;
+        document.getElementById('editProductSku').value = product.sku || '';
         document.getElementById('editProductType').value = product.type;
         document.getElementById('editQuantity').value = product.quantity;
         document.getElementById('editPrice').value = product.price;
-        document.getElementById('editDescription').value = product.description || '';
+
+        console.warn('📝 [CLIENT] Form populated with values:', {
+            id: document.getElementById('editProductId').value,
+            name: document.getElementById('editProductName').value,
+            sku: document.getElementById('editProductSku').value,
+            type: document.getElementById('editProductType').value,
+            quantity: document.getElementById('editQuantity').value,
+            price: document.getElementById('editPrice').value
+        });
 
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
@@ -608,12 +657,22 @@ class InventoryManager {
     async saveEditedProduct() {
         const id = document.getElementById('editProductId').value;
         const name = document.getElementById('editProductName').value.trim();
+        const sku = document.getElementById('editProductSku').value.trim().toUpperCase();
         const type = document.getElementById('editProductType').value;
         const quantity = parseInt(document.getElementById('editQuantity').value);
         const price = parseFloat(document.getElementById('editPrice').value);
-        const description = document.getElementById('editDescription').value.trim();
 
-        if (!name || !type || quantity < 0 || price < 0) {
+        console.warn('🔧 [CLIENT] saveEditedProduct() called');
+        console.warn('🆔 [CLIENT] Product ID being updated:', id);
+        console.warn('📝 [CLIENT] Form values extracted:', {
+            name: name,
+            sku: sku,
+            type: type,
+            quantity: quantity,
+            price: price
+        });
+
+        if (!name || !sku || !type || quantity < 0 || price < 0) {
             this.showAlert('Please fill in all required fields with valid values.', 'danger');
             return;
         }
@@ -629,10 +688,10 @@ class InventoryManager {
                 this.products[productIndex] = {
                     ...this.products[productIndex],
                     name,
+                    sku,
                     type,
                     quantity,
                     price,
-                    description,
                     totalValue: quantity * price,
                     _isOptimistic: this.isOnline ? false : true
                 };
@@ -647,6 +706,7 @@ class InventoryManager {
 
                 if (this.isOnline) {
                     // Try to sync with database
+                    console.warn('🌐 [CLIENT] Sending update request to API...');
                     const response = await fetch(`${this.apiBase}/${id}`, {
                         method: 'PUT',
                         headers: {
@@ -654,14 +714,21 @@ class InventoryManager {
                         },
                         body: JSON.stringify({
                             name,
+                            sku,
                             type,
                             quantity,
-                            price,
-                            description
+                            price
                         })
                     });
 
+                    console.warn('📥 [CLIENT] API response received:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok
+                    });
+
                     const result = await response.json();
+                    console.warn('📋 [CLIENT] API response body:', result);
 
                     if (result.success) {
                         this.products[productIndex] = result.data;
@@ -670,6 +737,16 @@ class InventoryManager {
                     } else {
                         // Revert on error
                         this.products[productIndex] = originalProduct;
+                        this.filteredProducts = [...this.products];
+                        this.renderProducts();
+                        await this.updateSummary();
+                        
+                        // Check for specific error types
+                        if (result.error === 'Duplicate SKU') {
+                            this.showAlert(`SKU "${sku}" already exists. Please choose a different SKU.`, 'danger');
+                        } else {
+                            this.showAlert(result.message || 'Failed to update product', 'danger');
+                        }
                         throw new Error(result.message || 'Failed to update product');
                     }
                 } else {
@@ -737,12 +814,128 @@ class InventoryManager {
         }
     }
 
+    openSellModal(sellButton) {
+        const productId = sellButton.dataset.productId;
+        const sku = sellButton.dataset.sku;
+        const maxQuantity = parseInt(sellButton.dataset.maxQuantity);
+        
+        // Set modal data
+        document.getElementById('sellProductId').value = productId;
+        document.getElementById('sellProductSku').value = sku;
+        document.getElementById('sellMaxQuantity').value = maxQuantity;
+        
+        // Display product info
+        document.getElementById('sellProductSkuDisplay').textContent = sku;
+        document.getElementById('sellAvailableQuantity').textContent = maxQuantity;
+        
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('sellDate').value = today;
+        
+        // Set max quantity for input validation
+        const sellQuantityInput = document.getElementById('sellQuantity');
+        sellQuantityInput.max = maxQuantity;
+        sellQuantityInput.value = 1;
+        
+        // Clear previous values
+        document.getElementById('sellPrice').value = '';
+        
+        // Clear validation errors
+        document.getElementById('sellQuantityError').textContent = '';
+        document.getElementById('sellPriceError').textContent = '';
+        sellQuantityInput.classList.remove('is-invalid');
+        document.getElementById('sellPrice').classList.remove('is-invalid');
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('sellProductModal'));
+        modal.show();
+    }
+    
+    async confirmSale() {
+        const productId = document.getElementById('sellProductId').value;
+        const sku = document.getElementById('sellProductSku').value;
+        const maxQuantity = parseInt(document.getElementById('sellMaxQuantity').value);
+        const sellQuantity = parseInt(document.getElementById('sellQuantity').value);
+        const sellPrice = parseFloat(document.getElementById('sellPrice').value);
+        const sellDate = document.getElementById('sellDate').value;
+        
+        // Validation
+        let hasError = false;
+        
+        if (!sellQuantity || sellQuantity < 1 || sellQuantity > maxQuantity) {
+            document.getElementById('sellQuantityError').textContent = `Please enter a valid quantity (1-${maxQuantity})`;
+            document.getElementById('sellQuantity').classList.add('is-invalid');
+            hasError = true;
+        }
+        
+        if (!sellPrice || sellPrice <= 0) {
+            document.getElementById('sellPriceError').textContent = 'Please enter a valid sell price';
+            document.getElementById('sellPrice').classList.add('is-invalid');
+            hasError = true;
+        }
+        
+        if (hasError) return;
+        
+        try {
+            this.showLoading(true);
+            
+            const saleData = {
+                productId,
+                sku,
+                quantity: sellQuantity,
+                sellPrice,
+                dateSold: sellDate
+            };
+            
+            if (this.isOnline) {
+                const response = await fetch(`${this.apiBase}/sell`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saleData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update the product in local array
+                    const product = this.products.find(p => p._id === productId);
+                    if (product) {
+                        product.quantity -= sellQuantity;
+                        // Note: filteredProducts is a shallow copy, so the same object is already updated
+                    }
+                    
+                    this.renderProducts();
+                    await this.updateSummary();
+                    this.saveToCache(this.products);
+                    
+                    this.showAlert(`Successfully sold ${sellQuantity} units of ${sku} for $${sellPrice.toFixed(2)}`, 'success');
+                    
+                    // Hide modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('sellProductModal'));
+                    modal.hide();
+                } else {
+                    throw new Error(result.message || 'Failed to record sale');
+                }
+            } else {
+                this.showAlert('Cannot record sales while offline. Please connect to the internet and try again.', 'warning');
+            }
+        } catch (error) {
+            console.error('Error recording sale:', error);
+            this.showAlert('Error recording sale: ' + error.message, 'danger');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
     filterProducts() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const typeFilter = document.getElementById('filterType').value;
 
         this.filteredProducts = this.products.filter(product => {
             const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
+                                (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
                                 (product.description && product.description.toLowerCase().includes(searchTerm));
             const matchesType = !typeFilter || product.type === typeFilter;
             return matchesSearch && matchesType;
@@ -761,7 +954,7 @@ class InventoryManager {
         if (this.filteredProducts.length === 0) {
             tbody.innerHTML = `
                 <tr id="emptyState">
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                         <i class="fas fa-box-open fa-2x mb-2"></i>
                         <br>
                         No products in inventory. Add your first product to get started!
@@ -784,6 +977,9 @@ class InventoryManager {
                         <strong>${this.escapeHtml(product.name)}</strong>
                     </td>
                     <td>
+                        <code class="text-muted">${this.escapeHtml(product.sku || 'N/A')}</code>
+                    </td>
+                    <td>
                         <span class="type-badge type-${product.type}">
                             ${this.formatProductType(product.type)}
                         </span>
@@ -796,6 +992,9 @@ class InventoryManager {
                     <td>$${product.price.toFixed(2)}</td>
                     <td><strong>$${product.totalValue.toFixed(2)}</strong></td>
                     <td>
+                        <button class="btn btn-outline-success btn-sm me-1 sell-btn" data-product-id="${product._id}" data-sku="${product.sku}" data-max-quantity="${product.quantity}" title="Sell Product">
+                            <i class="fas fa-dollar-sign"></i>
+                        </button>
                         <button class="btn btn-outline-primary btn-sm me-1 edit-btn" data-product-id="${product._id}">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -879,9 +1078,89 @@ class InventoryManager {
                 }
                 
                 this.updateAnalyticsDashboard(summary.typeBreakdown);
+                
+                // Update profit metrics if on homepage
+                await this.updateProfitMetrics();
             }
         } catch (error) {
             console.error('Error updating summary:', error);
+        }
+    }
+
+    async updateProfitMetrics() {
+        try {
+            console.log('💰 [CLIENT] Fetching profit metrics...');
+            const response = await fetch(`${this.apiBase}/stats/profits`);
+            const result = await response.json();
+            
+            console.log('📊 [CLIENT] Profit API response:', result);
+
+            if (result.success) {
+                const profits = result.data;
+                console.log('💵 [CLIENT] Profit data:', {
+                    currentMonth: profits.currentMonth,
+                    lastMonth: profits.lastMonth
+                });
+                
+                // Update current month profit
+                const currentMonthEl = document.getElementById('currentMonthProfit');
+                const lastMonthEl = document.getElementById('lastMonthProfit');
+                const changeEl = document.getElementById('monthlyProfitChange');
+                const lastMonthLabelEl = document.getElementById('lastMonthProfitLabel');
+                
+                console.log('🔍 [CLIENT] Elements found:', {
+                    currentMonthEl: !!currentMonthEl,
+                    lastMonthEl: !!lastMonthEl,
+                    changeEl: !!changeEl,
+                    lastMonthLabelEl: !!lastMonthLabelEl
+                });
+                
+                if (currentMonthEl) {
+                    currentMonthEl.textContent = `$${profits.currentMonth.toFixed(2)}`;
+                    console.log('✅ [CLIENT] Updated currentMonthProfit to:', currentMonthEl.textContent);
+                } else {
+                    console.warn('⚠️  [CLIENT] currentMonthProfit element not found');
+                }
+                
+                if (lastMonthEl) {
+                    lastMonthEl.textContent = `$${profits.lastMonth.toFixed(2)}`;
+                    console.log('✅ [CLIENT] Updated lastMonthProfit to:', lastMonthEl.textContent);
+                } else {
+                    console.warn('⚠️  [CLIENT] lastMonthProfit element not found');
+                }
+                
+                if (changeEl) {
+                    const change = profits.currentMonth - profits.lastMonth;
+                    const percentChange = profits.lastMonth > 0 ? ((change / profits.lastMonth) * 100) : 0;
+                    
+                    // Reset classes
+                    changeEl.className = 'profit-change';
+                    
+                    if (change > 0) {
+                        changeEl.classList.add('positive');
+                        changeEl.textContent = `+$${change.toFixed(2)} (+${percentChange.toFixed(1)}%)`;
+                    } else if (change < 0) {
+                        changeEl.classList.add('negative');
+                        changeEl.textContent = `-$${Math.abs(change).toFixed(2)} (${percentChange.toFixed(1)}%)`;
+                    } else {
+                        changeEl.classList.add('neutral');
+                        changeEl.textContent = 'No change from last month';
+                    }
+                }
+                
+                if (lastMonthLabelEl) {
+                    lastMonthLabelEl.textContent = 'Previous month';
+                    lastMonthLabelEl.className = 'profit-change neutral';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating profit metrics:', error);
+            // Fallback to loading state
+            const changeEl = document.getElementById('monthlyProfitChange');
+            if (changeEl) {
+                changeEl.textContent = 'Data unavailable';
+                changeEl.className = 'profit-change neutral';
+            }
         }
     }
 
@@ -1274,6 +1553,41 @@ class InventoryManager {
         } finally {
             this.showLoading(false);
         }
+    }
+
+    generateSkuSuggestion() {
+        const name = document.getElementById('modalProductName').value.trim();
+        const type = document.getElementById('modalProductType').value;
+        
+        if (!name || !type) {
+            this.showAlert('Please enter product name and type first to generate SKU suggestion.', 'warning');
+            return;
+        }
+
+        // Generate SKU based on product type and name
+        const typePrefix = {
+            'bed-covers': 'BC',
+            'cushion-covers': 'CC',
+            'sarees': 'SR',
+            'towels': 'TW'
+        };
+
+        const prefix = typePrefix[type] || 'PR'; // Default to 'PR' for Product
+        
+        // Extract first few letters from product name (remove spaces, special characters)
+        const nameCode = name.toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')  // Remove non-alphanumeric characters
+            .substring(0, 3);  // Take first 3 characters
+            
+        // Generate a timestamp-based suffix to ensure uniqueness
+        const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+        
+        const suggestedSku = `${prefix}-${nameCode}-${timestamp}`;
+        
+        // Set the suggested SKU
+        document.getElementById('modalProductSku').value = suggestedSku;
+        
+        this.showAlert(`Generated SKU suggestion: ${suggestedSku}`, 'info');
     }
 }
 

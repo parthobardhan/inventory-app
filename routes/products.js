@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const Sale = require('../models/Sale');
 const { getSignedUrl } = require('../config/aws');
 const mongoose = require('mongoose');
 const { upload, deleteFromS3 } = require('../config/aws');
@@ -145,9 +146,250 @@ router.get('/', checkDBConnection, async (req, res) => {
   }
 });
 
+// GET /api/products/stats/sales-test - Test endpoint to check sales data
+router.get('/stats/sales-test', checkDBConnection, async (req, res) => {
+  try {
+    console.log('🧪 [SALES TEST] Testing sales collection access...');
+    
+    // Count all sales
+    const totalSales = await Sale.countDocuments();
+    console.log('💰 [SALES TEST] Total sales:', totalSales);
+    
+    // Get all sales (limit to 10 for safety)
+    const allSales = await Sale.find().sort({ dateSold: -1 }).limit(10);
+    console.log('📋 [SALES TEST] Recent sales:', allSales.length);
+    
+    // Calculate total profit from ALL sales
+    const allSalesForProfit = await Sale.find();
+    const totalProfit = allSalesForProfit.reduce((sum, sale) => {
+      const saleProfit = sale.profit || 0;
+      console.log(`  - Sale ${sale.sku}: profit = ${saleProfit}`);
+      return sum + saleProfit;
+    }, 0);
+    console.log('💰 [SALES TEST] Total profit across all sales:', totalProfit);
+    
+    // Log each sale
+    allSales.forEach((sale, index) => {
+      console.log(`Sale ${index + 1}:`, {
+        id: sale._id,
+        sku: sale.sku,
+        quantity: sale.quantity,
+        sellPrice: sale.sellPrice,
+        cost: sale.cost,
+        totalSaleValue: sale.totalSaleValue,
+        totalCost: sale.totalCost,
+        profit: sale.profit,
+        dateSold: sale.dateSold,
+        dateSoldType: typeof sale.dateSold,
+        createdAt: sale.createdAt
+      });
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        totalSales,
+        totalProfit,
+        recentSales: allSales.map(sale => ({
+          id: sale._id,
+          sku: sale.sku,
+          quantity: sale.quantity,
+          sellPrice: sale.sellPrice,
+          cost: sale.cost,
+          profit: sale.profit,
+          dateSold: sale.dateSold,
+          dateSoldType: typeof sale.dateSold,
+          createdAt: sale.createdAt
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('❌ [SALES TEST] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error testing sales collection',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// GET /api/products/stats/profits - Get profit statistics
+router.get('/stats/profits', checkDBConnection, async (req, res) => {
+  try {
+    console.log('📊 [PROFITS API] Fetching profit statistics...');
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // Get first day of current month
+    const currentMonthStart = new Date(currentYear, currentMonth, 1);
+    
+    // Get first day of last month
+    const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const lastMonthEnd = new Date(currentYear, currentMonth, 0); // Last day of previous month
+    
+    console.log('📅 [PROFITS API] Date ranges:', {
+      currentMonthStart: currentMonthStart.toISOString(),
+      now: now.toISOString(),
+      lastMonthStart: lastMonthStart.toISOString(),
+      lastMonthEnd: lastMonthEnd.toISOString()
+    });
+    
+    // First, check total sales in collection
+    const totalSales = await Sale.countDocuments();
+    console.log('💰 [PROFITS API] Total sales in database:', totalSales);
+    
+    // Get a sample sale to see the data structure
+    const sampleSale = await Sale.findOne().sort({ dateSold: -1 });
+    if (sampleSale) {
+      console.log('📝 [PROFITS API] Sample sale:', {
+        id: sampleSale._id,
+        sku: sampleSale.sku,
+        dateSold: sampleSale.dateSold,
+        profit: sampleSale.profit,
+        quantity: sampleSale.quantity,
+        sellPrice: sampleSale.sellPrice,
+        cost: sampleSale.cost
+      });
+    } else {
+      console.log('⚠️  [PROFITS API] No sales found in database');
+    }
+    
+    // Calculate current month profits from Sale collection
+    const currentMonthSales = await Sale.find({
+      dateSold: { 
+        $gte: currentMonthStart,
+        $lte: now
+      }
+    });
+    
+    console.log('📈 [PROFITS API] Current month sales found:', currentMonthSales.length);
+    
+    const currentMonthProfit = currentMonthSales.reduce((sum, sale) => {
+      return sum + (sale.profit || 0);
+    }, 0);
+    
+    console.log('💵 [PROFITS API] Current month profit:', currentMonthProfit);
+    
+    // Calculate last month profits from Sale collection
+    const lastMonthSales = await Sale.find({
+      dateSold: { 
+        $gte: lastMonthStart,
+        $lte: lastMonthEnd
+      }
+    });
+    
+    console.log('📈 [PROFITS API] Last month sales found:', lastMonthSales.length);
+    
+    const lastMonthProfit = lastMonthSales.reduce((sum, sale) => {
+      return sum + (sale.profit || 0);
+    }, 0);
+    
+    console.log('💵 [PROFITS API] Last month profit:', lastMonthProfit);
+    
+    // Calculate 12-month profit history
+    const monthlyProfits = [];
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = new Date(currentYear, currentMonth - i, 1);
+      const monthEnd = new Date(currentYear, currentMonth - i + 1, 0);
+      
+      const monthlySales = await Sale.find({
+        dateSold: { 
+          $gte: monthStart,
+          $lte: monthEnd
+        }
+      });
+      
+      const monthProfit = monthlySales.reduce((sum, sale) => {
+        return sum + (sale.profit || 0);
+      }, 0);
+      
+      monthlyProfits.push({
+        month: monthStart.toISOString().substring(0, 7), // YYYY-MM format
+        profit: monthProfit,
+        salesCount: monthlySales.length
+      });
+    }
+    
+    console.log('📊 [PROFITS API] Monthly profits summary:', monthlyProfits.map(m => `${m.month}: $${m.profit.toFixed(2)}`).join(', '));
+    
+    const response = {
+      success: true,
+      data: {
+        currentMonth: currentMonthProfit,
+        lastMonth: lastMonthProfit,
+        changePercent: lastMonthProfit > 0 ? 
+          ((currentMonthProfit - lastMonthProfit) / lastMonthProfit * 100) : 0,
+        monthlyProfits
+      }
+    };
+    
+    console.log('✅ [PROFITS API] Sending response:', JSON.stringify(response, null, 2));
+    
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [PROFITS API] Error fetching profit stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching profit statistics',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/products/stats/summary - Get inventory summary statistics
+router.get('/stats/summary', checkDBConnection, async (req, res) => {
+  try {
+    const products = await Product.find();
+    
+    const summary = {
+      totalProducts: products.reduce((sum, product) => sum + product.quantity, 0),
+      totalValue: products.reduce((sum, product) => sum + product.totalValue, 0),
+      productCount: products.length,
+      typeBreakdown: {}
+    };
+    
+    // Calculate type breakdown
+    products.forEach(product => {
+      if (!summary.typeBreakdown[product.type]) {
+        summary.typeBreakdown[product.type] = {
+          count: 0,
+          value: 0,
+          items: 0
+        };
+      }
+      summary.typeBreakdown[product.type].count += product.quantity;
+      summary.typeBreakdown[product.type].value += product.totalValue;
+      summary.typeBreakdown[product.type].items += 1;
+    });
+    
+    res.json({
+      success: true,
+      data: summary
+    });
+  } catch (error) {
+    console.error('Error fetching summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching summary',
+      error: error.message
+    });
+  }
+});
+
 // GET /api/products/:id - Get single product
 router.get('/:id', checkDBConnection, async (req, res) => {
   try {
+    // Validate that the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
+    
     const product = await Product.findById(req.params.id);
     
     if (!product) {
@@ -187,10 +429,11 @@ router.post('/', checkDBConnection, async (req, res) => {
   });
   
   try {
-    const { name, type, quantity, price, cost, description } = req.body;
+    const { name, sku, type, quantity, price, cost, description } = req.body;
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
       name: name,
+      sku: sku,
       type: type,
       quantity: quantity,
       price: price,
@@ -199,10 +442,11 @@ router.post('/', checkDBConnection, async (req, res) => {
     });
     
     // Validate required fields
-    if (!name || !type || quantity === undefined || price === undefined) {
+    if (!name || !sku || !type || quantity === undefined || price === undefined) {
       console.warn('❌ [PRODUCTS API] Validation failed - missing required fields');
       console.warn('❌ [PRODUCTS API] Missing fields:', {
         name: !name,
+        sku: !sku,
         type: !type,
         quantity: quantity === undefined,
         price: price === undefined
@@ -210,7 +454,7 @@ router.post('/', checkDBConnection, async (req, res) => {
       
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, type, quantity, and price are required'
+        message: 'Missing required fields: name, sku, type, quantity, and price are required'
       });
     }
     
@@ -218,6 +462,7 @@ router.post('/', checkDBConnection, async (req, res) => {
     
     const product = new Product({
       name,
+      sku,
       type,
       quantity,
       price,
@@ -243,6 +488,16 @@ router.post('/', checkDBConnection, async (req, res) => {
   } catch (error) {
     console.error('💥 [PRODUCTS API] Error creating product:', error);
     console.error('💥 [PRODUCTS API] Error stack:', error.stack);
+    
+    // Handle MongoDB duplicate key error (E11000) for SKU uniqueness
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
+      console.warn('❌ [PRODUCTS API] Duplicate SKU error');
+      return res.status(400).json({
+        success: false,
+        message: 'SKU already exists. Please choose a different SKU.',
+        error: 'Duplicate SKU'
+      });
+    }
     
     if (error.name === 'ValidationError') {
       console.warn('❌ [PRODUCTS API] Validation error:', Object.values(error.errors).map(err => err.message));
@@ -282,11 +537,12 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       });
     }
 
-    const { name, type, quantity, price, cost, description } = productData;
+    const { name, sku, type, quantity, price, cost, description } = productData;
     const { generateAI = 'true' } = req.body;
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
       name: name,
+      sku: sku,
       type: type,
       quantity: quantity,
       price: price,
@@ -297,7 +553,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
     });
     
     // Validate required fields
-    if (!name || !type || quantity === undefined || price === undefined) {
+    if (!name || !sku || !type || quantity === undefined || price === undefined) {
       console.warn('❌ [PRODUCTS API] Validation failed - missing required fields');
       
       // Clean up uploaded file if validation fails
@@ -307,7 +563,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, type, quantity, and price are required'
+        message: 'Missing required fields: name, sku, type, quantity, and price are required'
       });
     }
     
@@ -316,6 +572,7 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
     // Create the product
     const product = new Product({
       name,
+      sku,
       type,
       quantity,
       price,
@@ -472,6 +729,16 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
       }
     }
     
+    // Handle MongoDB duplicate key error (E11000) for SKU uniqueness
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
+      console.warn('❌ [PRODUCTS API] Duplicate SKU error');
+      return res.status(400).json({
+        success: false,
+        message: 'SKU already exists. Please choose a different SKU.',
+        error: 'Duplicate SKU'
+      });
+    }
+    
     if (error.name === 'ValidationError') {
       console.warn('❌ [PRODUCTS API] Validation error:', Object.values(error.errors).map(err => err.message));
       return res.status(400).json({
@@ -493,12 +760,26 @@ router.post('/upload', checkDBConnection, upload.single('image'), async (req, re
 // PUT /api/products/:id - Update product
 router.put('/:id', checkDBConnection, async (req, res) => {
   try {
-    const { name, type, quantity, price, cost, dateSold, description } = req.body;
+    const { name, sku, type, quantity, price, cost, dateSold, description } = req.body;
+    
+    console.warn('🔧 [PRODUCTS API] PUT /api/products/:id - Updating product');
+    console.warn('🆔 [PRODUCTS API] Product ID:', req.params.id);
+    console.warn('📥 [PRODUCTS API] Update data:', {
+      name,
+      sku,
+      type,
+      quantity,
+      price,
+      cost,
+      dateSold,
+      description: description ? description.substring(0, 50) + '...' : 'none'
+    });
     
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       {
         name,
+        sku,
         type,
         quantity,
         price,
@@ -514,11 +795,19 @@ router.put('/:id', checkDBConnection, async (req, res) => {
     );
     
     if (!product) {
+      console.warn('❌ [PRODUCTS API] Product not found with ID:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Product not found'
       });
     }
+    
+    console.warn('✅ [PRODUCTS API] Product updated successfully:', {
+      id: product._id,
+      name: product.name,
+      sku: product.sku,
+      type: product.type
+    });
     
     res.json({
       success: true,
@@ -528,11 +817,27 @@ router.put('/:id', checkDBConnection, async (req, res) => {
   } catch (error) {
     console.error('Error updating product:', error);
     
+    // Handle MongoDB duplicate key error (E11000) for SKU uniqueness
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
+      return res.status(400).json({
+        success: false,
+        message: 'SKU already exists. Please choose a different SKU.',
+        error: 'Duplicate SKU'
+      });
+    }
+    
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
         message: 'Validation error',
         errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
       });
     }
     
@@ -571,126 +876,110 @@ router.delete('/:id', checkDBConnection, async (req, res) => {
   }
 });
 
-// GET /api/products/stats/profits - Get profit statistics
-router.get('/stats/profits', checkDBConnection, async (req, res) => {
+// POST /api/products/sell - Record a sale and update product quantity
+router.post('/sell', checkDBConnection, async (req, res) => {
   try {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+    const { productId, sku, quantity, sellPrice, dateSold } = req.body;
     
-    // Get first day of current month
-    const currentMonthStart = new Date(currentYear, currentMonth, 1);
-    
-    // Get first day of last month
-    const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
-    const lastMonthEnd = new Date(currentYear, currentMonth, 0); // Last day of previous month
-    
-    // Calculate current month profits
-    const currentMonthSales = await Product.find({
-      dateSold: { 
-        $gte: currentMonthStart,
-        $lte: now
-      },
-      cost: { $gt: 0 }
-    });
-    
-    const currentMonthProfit = currentMonthSales.reduce((sum, product) => {
-      return sum + (product.price - product.cost);
-    }, 0);
-    
-    // Calculate last month profits  
-    const lastMonthSales = await Product.find({
-      dateSold: { 
-        $gte: lastMonthStart,
-        $lte: lastMonthEnd
-      },
-      cost: { $gt: 0 }
-    });
-    
-    const lastMonthProfit = lastMonthSales.reduce((sum, product) => {
-      return sum + (product.price - product.cost);
-    }, 0);
-    
-    // Calculate 12-month profit history
-    const monthlyProfits = [];
-    for (let i = 11; i >= 0; i--) {
-      const monthStart = new Date(currentYear, currentMonth - i, 1);
-      const monthEnd = new Date(currentYear, currentMonth - i + 1, 0);
-      
-      const monthlySales = await Product.find({
-        dateSold: { 
-          $gte: monthStart,
-          $lte: monthEnd
-        },
-        cost: { $gt: 0 }
-      });
-      
-      const monthProfit = monthlySales.reduce((sum, product) => {
-        return sum + (product.price - product.cost);
-      }, 0);
-      
-      monthlyProfits.push({
-        month: monthStart.toISOString().substring(0, 7), // YYYY-MM format
-        profit: monthProfit,
-        salesCount: monthlySales.length
+    // Validation
+    if (!productId || !sku || !quantity || !sellPrice || !dateSold) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: productId, sku, quantity, sellPrice, dateSold'
       });
     }
     
-    res.json({
-      success: true,
-      data: {
-        currentMonthProfit,
-        lastMonthProfit,
-        changePercent: lastMonthProfit > 0 ? 
-          ((currentMonthProfit - lastMonthProfit) / lastMonthProfit * 100) : 0,
-        monthlyProfits
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching profit stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching profit statistics',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/products/stats/summary - Get inventory summary statistics
-router.get('/stats/summary', checkDBConnection, async (req, res) => {
-  try {
-    const products = await Product.find();
+    if (quantity < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity must be at least 1'
+      });
+    }
     
-    const summary = {
-      totalProducts: products.reduce((sum, product) => sum + product.quantity, 0),
-      totalValue: products.reduce((sum, product) => sum + product.totalValue, 0),
-      productCount: products.length,
-      typeBreakdown: {}
-    };
+    if (sellPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sell price must be greater than 0'
+      });
+    }
     
-    // Calculate type breakdown
-    products.forEach(product => {
-      if (!summary.typeBreakdown[product.type]) {
-        summary.typeBreakdown[product.type] = {
-          count: 0,
-          value: 0,
-          items: 0
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // Verify SKU matches
+    if (product.sku !== sku.toUpperCase()) {
+      return res.status(400).json({
+        success: false,
+        message: 'SKU does not match product'
+      });
+    }
+    
+    // Check if enough quantity available
+    if (product.quantity < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient quantity. Available: ${product.quantity}, Requested: ${quantity}`
+      });
+    }
+    
+    // Use transaction to ensure data consistency
+    const session = await mongoose.startSession();
+    
+    try {
+      await session.withTransaction(async () => {
+        // Create sale record
+        const saleData = {
+          productId,
+          sku: sku.toUpperCase(),
+          quantity: parseInt(quantity),
+          sellPrice: parseFloat(sellPrice),
+          cost: product.cost || 0, // Get cost from product
+          dateSold: new Date(dateSold)
         };
-      }
-      summary.typeBreakdown[product.type].count += product.quantity;
-      summary.typeBreakdown[product.type].value += product.totalValue;
-      summary.typeBreakdown[product.type].items += 1;
-    });
+        
+        const sale = new Sale(saleData);
+        await sale.save({ session });
+        
+        // Update product quantity
+        await Product.findByIdAndUpdate(
+          productId,
+          { $inc: { quantity: -quantity } },
+          { session, new: true }
+        );
+      });
+      
+      await session.commitTransaction();
+      
+      res.json({
+        success: true,
+        message: `Successfully sold ${quantity} units of ${sku}`,
+        data: {
+          sku,
+          quantity,
+          sellPrice,
+          dateSold,
+          remainingQuantity: product.quantity - quantity
+        }
+      });
+      
+    } catch (transactionError) {
+      await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      await session.endSession();
+    }
     
-    res.json({
-      success: true,
-      data: summary
-    });
   } catch (error) {
-    console.error('Error fetching summary:', error);
+    console.error('Error recording sale:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching summary',
+      message: 'Error recording sale',
       error: error.message
     });
   }

@@ -68,8 +68,8 @@ class AnalyticsDashboard {
                 console.warn('Failed to fetch profit data:', result.message);
                 // Set default profit values
                 this.updateProfitMetrics({
-                    currentMonthProfit: 0,
-                    lastMonthProfit: 0,
+                    currentMonth: 0,
+                    lastMonth: 0,
                     monthlyProfits: []
                 });
             }
@@ -77,8 +77,8 @@ class AnalyticsDashboard {
             console.error('Error loading profit data:', error);
             // Set default profit values on error
             this.updateProfitMetrics({
-                currentMonthProfit: 0,
-                lastMonthProfit: 0,
+                currentMonth: 0,
+                lastMonth: 0,
                 monthlyProfits: []
             });
         }
@@ -94,11 +94,15 @@ class AnalyticsDashboard {
         const lastMonthElement = document.getElementById('lastMonthProfitMetric');
         
         if (currentMonthElement) {
-            currentMonthElement.textContent = `$${data.currentMonthProfit.toFixed(2)}`;
+            // Use correct property name from API response
+            const currentMonth = data.currentMonth || data.currentMonthProfit || 0;
+            currentMonthElement.textContent = `$${currentMonth.toFixed(2)}`;
         }
         
         if (lastMonthElement) {
-            lastMonthElement.textContent = `$${data.lastMonthProfit.toFixed(2)}`;
+            // Use correct property name from API response
+            const lastMonth = data.lastMonth || data.lastMonthProfit || 0;
+            lastMonthElement.textContent = `$${lastMonth.toFixed(2)}`;
         }
     }
 
