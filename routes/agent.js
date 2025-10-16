@@ -1,7 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { chat } = require('../services/agentService');
+const multer = require('multer');
+const { chat, chatWithImage } = require('../services/agentService');
+
+// Configure multer for memory storage (for processing images)
+const storage = multer.memoryStorage();
+const uploadMemory = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
 
 // Middleware to check database connection
 const checkDBConnection = async (req, res, next) => {
@@ -44,15 +61,63 @@ const checkDBConnection = async (req, res, next) => {
   }
 };
 
-// POST /api/agent/chat - Handle agent chat requests
-router.post('/chat', checkDBConnection, async (req, res) => {
-  try {
-    const { message, conversationHistory } = req.body;
-
-    if (!message) {
+// Error handler for multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        error: 'Message is required',
+        error: 'File too large. Maximum size is 10MB.',
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: `Upload error: ${err.message}`,
+    });
+  } else if (err) {
+    console.error('Upload error:', err);
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'File upload failed',
+    });
+  }
+  next();
+};
+
+// POST /api/agent/chat - Handle agent chat requests (with optional image)
+router.post('/chat', checkDBConnection, uploadMemory.single('image'), handleMulterError, async (req, res) => {
+  try {
+    let { message, conversationHistory } = req.body;
+    const imageFile = req.file;
+
+    console.log('📥 Received chat request:', {
+      hasMessage: !!message,
+      messageLength: message ? message.length : 0,
+      hasImage: !!imageFile,
+      bodyKeys: Object.keys(req.body)
+    });
+
+    // Parse conversationHistory if it's a string (from FormData)
+    let parsedHistory = conversationHistory || [];
+    if (typeof conversationHistory === 'string') {
+      try {
+        parsedHistory = JSON.parse(conversationHistory);
+      } catch (e) {
+        console.warn('Failed to parse conversation history:', e);
+        parsedHistory = [];
+      }
+    }
+
+    // Normalize empty message
+    message = (message || '').trim();
+
+    // Require either a message or an image
+    if (!message && !imageFile) {
+      console.warn('❌ Rejected: No message or image provided');
+      return res.status(400).json({
+        success: false,
+        error: 'Message or image is required',
       });
     }
 
@@ -65,10 +130,24 @@ router.post('/chat', checkDBConnection, async (req, res) => {
       });
     }
 
-    console.log('Processing agent request:', message);
+    console.log('Processing agent request:', message || '(with image)');
+    if (imageFile) {
+      console.log('Image received:', imageFile.originalname, imageFile.size, 'bytes');
+    }
 
     // Process the message with the agent
-    const response = await chat(message, conversationHistory || []);
+    let response;
+    if (imageFile) {
+      // Process with image
+      response = await chatWithImage(
+        message || 'What is this product?',
+        imageFile,
+        parsedHistory
+      );
+    } else {
+      // Process text-only
+      response = await chat(message, parsedHistory);
+    }
 
     res.json(response);
   } catch (error) {

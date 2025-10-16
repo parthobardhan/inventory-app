@@ -3,6 +3,7 @@ class AIAgentChat {
     constructor() {
         this.conversationHistory = [];
         this.isProcessing = false;
+        this.selectedImage = null;
         this.initializeElements();
         this.attachEventListeners();
     }
@@ -16,6 +17,14 @@ class AIAgentChat {
         this.closeChatBtn = document.getElementById('closeChatBtn');
         this.chatStatus = document.getElementById('chatStatus');
         this.suggestionChips = document.querySelectorAll('.ai-suggestion-chip');
+        
+        // Image upload elements
+        this.uploadImageBtn = document.getElementById('uploadImageBtn');
+        this.chatImageInput = document.getElementById('chatImageInput');
+        this.chatImagePreview = document.getElementById('chatImagePreview');
+        this.chatPreviewImage = document.getElementById('chatPreviewImage');
+        this.removeChatImage = document.getElementById('removeChatImage');
+        this.chatImageFilename = document.getElementById('chatImageFilename');
     }
 
     attachEventListeners() {
@@ -48,6 +57,19 @@ class AIAgentChat {
                 this.sendMessage();
             });
         });
+
+        // Image upload
+        this.uploadImageBtn?.addEventListener('click', () => {
+            this.chatImageInput.click();
+        });
+
+        this.chatImageInput?.addEventListener('change', (e) => {
+            this.handleImageSelect(e);
+        });
+
+        this.removeChatImage?.addEventListener('click', () => {
+            this.clearImage();
+        });
     }
 
     openChat() {
@@ -65,18 +87,32 @@ class AIAgentChat {
     }
 
     async sendMessage() {
-        const message = this.chatInput.value.trim();
+        let message = this.chatInput.value.trim();
         
-        if (!message || this.isProcessing) {
+        if ((!message && !this.selectedImage) || this.isProcessing) {
             return;
+        }
+
+        // Save image reference
+        const imageToSend = this.selectedImage;
+        const hasImage = !!imageToSend;
+
+        // If there's an image but no message, provide a default
+        if (hasImage && !message) {
+            message = 'Please analyze this image and help me add it as a product.';
         }
 
         // Clear input and reset height
         this.chatInput.value = '';
         this.chatInput.style.height = 'auto';
 
-        // Add user message to UI
-        this.addUserMessage(message);
+        // Add user message to UI (with image if present)
+        this.addUserMessage(message, hasImage ? this.chatPreviewImage.src : null);
+
+        // Clear image after adding to UI
+        if (hasImage) {
+            this.clearImage();
+        }
 
         // Show typing indicator
         this.setStatus('AI is thinking...', 'typing');
@@ -84,19 +120,49 @@ class AIAgentChat {
         this.sendBtn.disabled = true;
 
         try {
-            // Call the API
-            const response = await fetch('/api/agent/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: message,
-                    conversationHistory: this.conversationHistory,
-                }),
-            });
+            let response, data;
 
-            const data = await response.json();
+            if (hasImage) {
+                // Send with image as multipart/form-data
+                const formData = new FormData();
+                formData.append('message', message);
+                formData.append('conversationHistory', JSON.stringify(this.conversationHistory));
+                formData.append('image', imageToSend);
+
+                console.log('📤 Sending chat with image:', {
+                    messageLength: message.length,
+                    imageSize: imageToSend.size,
+                    imageName: imageToSend.name
+                });
+
+                response = await fetch('/api/agent/chat', {
+                    method: 'POST',
+                    body: formData,
+                });
+            } else {
+                // Send as JSON (original behavior)
+                response = await fetch('/api/agent/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationHistory: this.conversationHistory,
+                    }),
+                });
+            }
+
+            // Log response status
+            console.log('📥 Response status:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('❌ Server error:', errorData);
+                throw new Error(errorData.error || errorData.message || 'Server error');
+            }
+
+            data = await response.json();
 
             if (data.success) {
                 // Add AI response to UI
@@ -123,12 +189,17 @@ class AIAgentChat {
             this.setStatus('');
         } catch (error) {
             console.error('Chat error:', error);
-            this.addAIMessage(
-                'Sorry, I couldn\'t process your request. Please check your connection and try again.',
-                null,
-                true
-            );
-            this.setStatus('Error sending message', 'error');
+            
+            // Show specific error message
+            let errorMessage = 'Sorry, I couldn\'t process your request. ';
+            if (error.message) {
+                errorMessage += error.message;
+            } else {
+                errorMessage += 'Please check your connection and try again.';
+            }
+            
+            this.addAIMessage(errorMessage, null, true);
+            this.setStatus('Error: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             this.isProcessing = false;
             this.sendBtn.disabled = false;
@@ -136,15 +207,22 @@ class AIAgentChat {
         }
     }
 
-    addUserMessage(message) {
+    addUserMessage(message, imageUrl = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'user-message';
+        
+        let imageHtml = '';
+        if (imageUrl) {
+            imageHtml = `<img src="${imageUrl}" class="user-message-image" alt="Uploaded image" />`;
+        }
+        
         messageDiv.innerHTML = `
             <div class="user-message-avatar">
                 <i class="fas fa-user"></i>
             </div>
             <div class="user-message-content">
-                <p>${this.escapeHtml(message)}</p>
+                ${imageHtml}
+                ${message ? `<p>${this.escapeHtml(message)}</p>` : ''}
             </div>
         `;
         this.chatMessages.appendChild(messageDiv);
@@ -295,6 +373,50 @@ class AIAgentChat {
 
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    handleImageSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            this.setStatus('Please select a valid image file', 'error');
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            this.setStatus('Image size must be less than 10MB', 'error');
+            return;
+        }
+
+        // Store the file
+        this.selectedImage = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.chatPreviewImage.src = e.target.result;
+            this.chatImagePreview.style.display = 'block';
+            this.chatImageFilename.textContent = file.name;
+            this.uploadImageBtn.classList.add('has-image');
+        };
+        reader.readAsDataURL(file);
+
+        // Update placeholder text
+        this.chatInput.placeholder = "Describe what you want to do with this image...";
+    }
+
+    clearImage() {
+        this.selectedImage = null;
+        this.chatPreviewImage.src = '';
+        this.chatImagePreview.style.display = 'none';
+        this.chatImageFilename.textContent = '';
+        this.chatImageInput.value = '';
+        this.uploadImageBtn.classList.remove('has-image');
+        this.chatInput.placeholder = "Type your message... (e.g., 'Add this as a bed cover for $25')";
     }
 }
 

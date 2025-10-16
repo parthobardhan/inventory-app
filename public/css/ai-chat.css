@@ -406,6 +406,103 @@
     }
 }
 
+/* Image Upload Button */
+.ai-upload-btn {
+    background: #e9ecef;
+    border: none;
+    color: #495057;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 18px;
+}
+
+.ai-upload-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.ai-upload-btn.has-image {
+    background: #667eea;
+    color: white;
+}
+
+/* Image Preview */
+.ai-chat-image-preview {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.ai-image-preview-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.ai-image-preview-container img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    display: block;
+    object-fit: contain;
+}
+
+.ai-image-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(220, 53, 69, 0.9);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.ai-image-remove-btn:hover {
+    background: #dc3545;
+    transform: scale(1.1);
+}
+
+.ai-image-filename {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-image-filename::before {
+    content: '\f03e';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+}
+
+/* User Message with Image */
+.user-message-image {
+    max-width: 250px;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: block;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .ai-assistant-banner {
@@ -422,6 +519,10 @@
         height: calc(100vh - 100px);
         right: 10px;
         bottom: 10px;
+    }
+
+    .ai-image-preview-container img {
+        max-height: 150px;
     }
 }
 

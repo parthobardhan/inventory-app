@@ -358,11 +358,25 @@
                 <button class="ai-suggestion-chip" data-message="What are my top selling products this month?">🏆 Top products</button>
                 <button class="ai-suggestion-chip" data-message="Add 20 cotton bed covers for $35">➕ Add product</button>
             </div>
+            <!-- Image Preview Area -->
+            <div class="ai-chat-image-preview" id="chatImagePreview" style="display: none;">
+                <div class="ai-image-preview-container">
+                    <img id="chatPreviewImage" src="" alt="Preview" />
+                    <button class="ai-image-remove-btn" id="removeChatImage" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="ai-image-filename" id="chatImageFilename"></div>
+            </div>
             <div class="ai-chat-input-wrapper">
+                <input type="file" id="chatImageInput" accept="image/*" style="display: none;" />
+                <button id="uploadImageBtn" class="ai-upload-btn" type="button" title="Upload image">
+                    <i class="fas fa-image"></i>
+                </button>
                 <textarea 
                     id="chatInput" 
                     class="ai-chat-input" 
-                    placeholder="Type your message... (e.g., 'Add 10 towels for $15')"
+                    placeholder="Type your message... (e.g., 'Add this as a bed cover for $25')"
                     rows="1"
                 ></textarea>
                 <button id="sendChatBtn" class="ai-send-btn">
