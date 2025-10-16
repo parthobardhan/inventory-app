@@ -25,6 +25,10 @@ class AIAgentChat {
         this.chatPreviewImage = document.getElementById('chatPreviewImage');
         this.removeChatImage = document.getElementById('removeChatImage');
         this.chatImageFilename = document.getElementById('chatImageFilename');
+        
+        // Drag and drop elements
+        this.dropZone = document.getElementById('dropZone');
+        this.inputContainer = document.querySelector('.ai-chat-input-container');
     }
 
     attachEventListeners() {
@@ -70,6 +74,89 @@ class AIAgentChat {
         this.removeChatImage?.addEventListener('click', () => {
             this.clearImage();
         });
+
+        // Drag and drop events
+        this.setupDragAndDrop();
+    }
+
+    setupDragAndDrop() {
+        // Prevent default drag behaviors on the entire widget
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            this.chatWidget?.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // Show drop zone on drag enter
+        ['dragenter', 'dragover'].forEach(eventName => {
+            this.chatWidget?.addEventListener(eventName, (e) => {
+                if (this.isDraggedFile(e)) {
+                    this.dropZone?.classList.add('active');
+                }
+            }, false);
+        });
+
+        // Hide drop zone on drag leave
+        this.chatWidget?.addEventListener('dragleave', (e) => {
+            // Only hide if leaving the widget entirely
+            if (e.target === this.chatWidget) {
+                this.dropZone?.classList.remove('active');
+            }
+        }, false);
+
+        // Handle drop
+        this.chatWidget?.addEventListener('drop', (e) => {
+            this.dropZone?.classList.remove('active');
+            
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                
+                // Check if it's an image
+                if (file.type.startsWith('image/')) {
+                    this.handleImageFile(file);
+                } else {
+                    this.setStatus('Please drop an image file', 'error');
+                    setTimeout(() => this.setStatus(''), 2000);
+                }
+            }
+        }, false);
+    }
+
+    isDraggedFile(e) {
+        // Check if the dragged item contains files
+        if (e.dataTransfer?.types) {
+            return e.dataTransfer.types.includes('Files');
+        }
+        return false;
+    }
+
+    handleImageFile(file) {
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            this.setStatus('Image size must be less than 10MB', 'error');
+            setTimeout(() => this.setStatus(''), 3000);
+            return;
+        }
+
+        // Store the file
+        this.selectedImage = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.chatPreviewImage.src = e.target.result;
+            this.chatImagePreview.style.display = 'block';
+            this.chatImageFilename.textContent = file.name;
+            this.uploadImageBtn.classList.add('has-image');
+        };
+        reader.readAsDataURL(file);
+
+        // Update placeholder text
+        this.chatInput.placeholder = "Describe what you want to do with this image...";
+        this.chatInput.focus();
     }
 
     openChat() {
@@ -382,31 +469,12 @@ class AIAgentChat {
         // Validate file type
         if (!file.type.startsWith('image/')) {
             this.setStatus('Please select a valid image file', 'error');
+            setTimeout(() => this.setStatus(''), 2000);
             return;
         }
 
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
-            this.setStatus('Image size must be less than 10MB', 'error');
-            return;
-        }
-
-        // Store the file
-        this.selectedImage = file;
-
-        // Show preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.chatPreviewImage.src = e.target.result;
-            this.chatImagePreview.style.display = 'block';
-            this.chatImageFilename.textContent = file.name;
-            this.uploadImageBtn.classList.add('has-image');
-        };
-        reader.readAsDataURL(file);
-
-        // Update placeholder text
-        this.chatInput.placeholder = "Describe what you want to do with this image...";
+        // Use the common handler
+        this.handleImageFile(file);
     }
 
     clearImage() {

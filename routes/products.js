@@ -6,6 +6,7 @@ const { getSignedUrl } = require('../config/aws');
 const mongoose = require('mongoose');
 const { upload, deleteFromS3 } = require('../config/aws');
 const { generateProductDescription } = require('../services/aiService');
+const { createProduct } = require('../services/productService');
 const { v4: uuidv4 } = require('uuid');
 
 // Middleware to check database connection
@@ -433,7 +434,7 @@ router.post('/', checkDBConnection, async (req, res) => {
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
       name: name,
-      sku: sku,
+      sku: sku || 'auto-generated',
       type: type,
       quantity: quantity,
       price: price,
@@ -441,77 +442,55 @@ router.post('/', checkDBConnection, async (req, res) => {
       description: description ? description.substring(0, 100) + '...' : 'none'
     });
     
-    // Validate required fields
-    if (!name || !sku || !type || quantity === undefined || price === undefined) {
-      console.warn('❌ [PRODUCTS API] Validation failed - missing required fields');
-      console.warn('❌ [PRODUCTS API] Missing fields:', {
-        name: !name,
-        sku: !sku,
-        type: !type,
-        quantity: quantity === undefined,
-        price: price === undefined
-      });
-      
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: name, sku, type, quantity, and price are required'
-      });
-    }
+    console.warn('💾 [PRODUCTS API] Attempting to create product via service...');
     
-    console.warn('✅ [PRODUCTS API] Validation passed - creating product object');
-    
-    const product = new Product({
+    // Use shared service to create product
+    // SKU will be auto-generated if not provided
+    const result = await createProduct({
       name,
-      sku,
+      sku, // Optional - will be auto-generated if not provided
       type,
       quantity,
       price,
-      cost: cost || 0,
+      cost,
       description
     });
     
-    console.warn('💾 [PRODUCTS API] Attempting to save product to database...');
-    const savedProduct = await product.save();
-    console.warn('✅ [PRODUCTS API] Product saved successfully:', {
-      id: savedProduct._id,
-      name: savedProduct.name,
-      type: savedProduct.type
-    });
-    
-    res.status(201).json({
-      success: true,
-      message: 'Product created successfully',
-      data: savedProduct
-    });
-    
-    console.warn('📤 [PRODUCTS API] Response sent successfully');
+    if (result.success) {
+      console.warn('✅ [PRODUCTS API] Product created successfully:', {
+        id: result.data._id,
+        name: result.data.name,
+        type: result.data.type
+      });
+      
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+      
+      console.warn('📤 [PRODUCTS API] Response sent successfully');
+    } else {
+      console.warn('❌ [PRODUCTS API] Product creation failed:', result.error);
+      
+      // Map error codes to HTTP status codes
+      const statusCode = result.code === 'VALIDATION_ERROR' ? 400 :
+                        result.code === 'DUPLICATE_SKU' ? 400 : 500;
+      
+      res.status(statusCode).json({
+        success: false,
+        message: result.error,
+        error: result.code,
+        details: result.details
+      });
+    }
   } catch (error) {
-    console.error('💥 [PRODUCTS API] Error creating product:', error);
+    console.error('💥 [PRODUCTS API] Unexpected error creating product:', error);
     console.error('💥 [PRODUCTS API] Error stack:', error.stack);
     
-    // Handle MongoDB duplicate key error (E11000) for SKU uniqueness
-    if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
-      console.warn('❌ [PRODUCTS API] Duplicate SKU error');
-      return res.status(400).json({
-        success: false,
-        message: 'SKU already exists. Please choose a different SKU.',
-        error: 'Duplicate SKU'
-      });
-    }
-    
-    if (error.name === 'ValidationError') {
-      console.warn('❌ [PRODUCTS API] Validation error:', Object.values(error.errors).map(err => err.message));
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors: Object.values(error.errors).map(err => err.message)
-      });
-    }
-    
-    console.warn('❌ [PRODUCTS API] Server error - returning 500');
     res.status(500).json({
       success: false,
-      message: 'Error creating product',
+      message: 'Unexpected error creating product',
       error: error.message
     });
   }

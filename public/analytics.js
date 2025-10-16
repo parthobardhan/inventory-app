@@ -92,6 +92,8 @@ class AnalyticsDashboard {
     updateProfitMetrics(data) {
         const currentMonthElement = document.getElementById('currentMonthProfitMetric');
         const lastMonthElement = document.getElementById('lastMonthProfitMetric');
+        const changeElement = document.getElementById('monthlyProfitChangeMetric');
+        const growthElement = document.getElementById('monthlyGrowthPercentageMetric');
         
         if (currentMonthElement) {
             // Use correct property name from API response
@@ -103,6 +105,46 @@ class AnalyticsDashboard {
             // Use correct property name from API response
             const lastMonth = data.lastMonth || data.lastMonthProfit || 0;
             lastMonthElement.textContent = `$${lastMonth.toFixed(2)}`;
+        }
+        
+        // Update change badge
+        if (changeElement) {
+            const currentMonth = data.currentMonth || data.currentMonthProfit || 0;
+            const lastMonth = data.lastMonth || data.lastMonthProfit || 0;
+            const change = currentMonth - lastMonth;
+            const percentChange = lastMonth > 0 ? ((change / lastMonth) * 100) : 0;
+            
+            changeElement.className = 'profit-change-badge';
+            
+            if (change > 0) {
+                changeElement.classList.add('positive');
+                changeElement.textContent = `+$${change.toFixed(2)} (+${percentChange.toFixed(1)}%)`;
+            } else if (change < 0) {
+                changeElement.classList.add('negative');
+                changeElement.textContent = `-$${Math.abs(change).toFixed(2)} (${percentChange.toFixed(1)}%)`;
+            } else {
+                changeElement.classList.add('neutral');
+                changeElement.textContent = 'No change from last month';
+            }
+        }
+        
+        // Update growth percentage
+        if (growthElement) {
+            const currentMonth = data.currentMonth || data.currentMonthProfit || 0;
+            const lastMonth = data.lastMonth || data.lastMonthProfit || 0;
+            const change = currentMonth - lastMonth;
+            const percentChange = lastMonth > 0 ? ((change / lastMonth) * 100) : 0;
+            
+            if (change > 0) {
+                growthElement.textContent = `+${percentChange.toFixed(1)}%`;
+                growthElement.className = 'comparison-growth';
+            } else if (change < 0) {
+                growthElement.textContent = `${percentChange.toFixed(1)}%`;
+                growthElement.className = 'comparison-growth negative';
+            } else {
+                growthElement.textContent = '0%';
+                growthElement.className = 'comparison-growth';
+            }
         }
     }
 

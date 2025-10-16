@@ -1,15 +1,16 @@
 {
   "name": "Textile Inventory Manager",
-  "short_name": "InventoryApp",
+  "short_name": "Inventory",
   "description": "A comprehensive inventory management system for textile products including bed covers, cushion covers, and more.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0d6efd",
-  "orientation": "portrait-primary",
+  "background_color": "#f9fafb",
+  "theme_color": "#1a1a2e",
+  "orientation": "any",
   "categories": ["business", "productivity", "utilities"],
   "lang": "en-US",
   "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

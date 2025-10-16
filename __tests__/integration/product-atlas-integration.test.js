@@ -121,7 +121,8 @@ describe('Product Addition Integration Tests', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Validation error');
+      // Updated to match the shared service error message
+      expect(response.body.message).toBe('Missing required fields: name, type, quantity, and price are required');
     });
 
     test('should calculate totalValue correctly', async () => {
