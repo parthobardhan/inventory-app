@@ -47,10 +47,11 @@ class AIAgentChat {
             }
         });
 
-        // Auto-resize textarea
+        // Auto-resize textarea with better sizing
         this.chatInput?.addEventListener('input', () => {
             this.chatInput.style.height = 'auto';
-            this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 120) + 'px';
+            const newHeight = Math.min(this.chatInput.scrollHeight, 160);
+            this.chatInput.style.height = newHeight + 'px';
         });
 
         // Suggestion chips
@@ -320,26 +321,8 @@ class AIAgentChat {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'ai-message';
         
-        let toolResultsHtml = '';
-        
-        if (toolResults && toolResults.length > 0) {
-            toolResults.forEach(result => {
-                const isSuccess = result.success !== false;
-                const statusClass = isSuccess ? 'tool-result-success' : 'tool-result-error';
-                
-                toolResultsHtml += `
-                    <div class="tool-result ${statusClass}">
-                        <div class="tool-result-header">
-                            <i class="fas fa-${isSuccess ? 'check-circle' : 'exclamation-circle'}"></i>
-                            ${isSuccess ? 'Action completed' : 'Action failed'}
-                        </div>
-                        <div class="tool-result-details">
-                            ${this.formatToolResult(result)}
-                        </div>
-                    </div>
-                `;
-            });
-        }
+        // Tool results are handled by the backend and included in the message text
+        // No need to display them separately in the UI
         
         messageDiv.innerHTML = `
             <div class="ai-message-avatar">
@@ -347,7 +330,6 @@ class AIAgentChat {
             </div>
             <div class="ai-message-content">
                 <p>${this.formatMessage(message)}</p>
-                ${toolResultsHtml}
             </div>
         `;
         
