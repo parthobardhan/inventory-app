@@ -1199,7 +1199,7 @@ class InventoryManager {
                     const percentChange = profits.lastMonth > 0 ? ((change / profits.lastMonth) * 100) : 0;
                     
                     // Reset classes
-                    changeEl.className = 'profit-change';
+                    changeEl.className = 'profit-change-badge';
                     
                     if (change > 0) {
                         changeEl.classList.add('positive');
@@ -1213,6 +1213,25 @@ class InventoryManager {
                     }
                 }
                 
+                // Update the growth percentage display
+                const growthEl = document.getElementById('monthlyGrowthPercentage');
+                if (growthEl) {
+                    const change = profits.currentMonth - profits.lastMonth;
+                    const percentChange = profits.lastMonth > 0 ? ((change / profits.lastMonth) * 100) : 0;
+                    
+                    if (change > 0) {
+                        growthEl.textContent = `+${percentChange.toFixed(1)}%`;
+                        growthEl.className = 'comparison-growth';
+                    } else if (change < 0) {
+                        growthEl.textContent = `${percentChange.toFixed(1)}%`;
+                        growthEl.className = 'comparison-growth negative';
+                    } else {
+                        growthEl.textContent = '0%';
+                        growthEl.className = 'comparison-growth';
+                    }
+                }
+                
+                // Remove the old lastMonthLabel element update since it doesn't exist in new design
                 if (lastMonthLabelEl) {
                     lastMonthLabelEl.textContent = 'Previous month';
                     lastMonthLabelEl.className = 'profit-change neutral';
@@ -1224,7 +1243,7 @@ class InventoryManager {
             const changeEl = document.getElementById('monthlyProfitChange');
             if (changeEl) {
                 changeEl.textContent = 'Data unavailable';
-                changeEl.className = 'profit-change neutral';
+                changeEl.className = 'profit-change-badge neutral';
             }
         }
     }

@@ -103,22 +103,33 @@
             </div>
 
             <!-- Profit Metrics -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card border-info">
-                        <div class="card-body text-center">
-                            <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
-                            <h3 class="text-info mb-1" id="currentMonthProfitMetric">$0.00</h3>
-                            <h6 class="text-muted mb-0">This Month Profit</h6>
-                        </div>
+            <div class="profit-comparison-card mb-4">
+                <div class="profit-primary">
+                    <div class="profit-primary-label">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Current Month</span>
                     </div>
+                    <div class="profit-primary-value" id="currentMonthProfitMetric">$0.00</div>
+                    <div class="profit-change-badge" id="monthlyProfitChangeMetric">Loading...</div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card border-warning">
-                        <div class="card-body text-center">
-                            <i class="fas fa-calendar-alt fa-3x text-warning mb-3"></i>
-                            <h3 class="text-warning mb-1" id="lastMonthProfitMetric">$0.00</h3>
-                            <h6 class="text-muted mb-0">Last Month Profit</h6>
+                <div class="profit-divider">
+                    <div class="profit-trend-line"></div>
+                </div>
+                <div class="profit-secondary">
+                    <div class="profit-comparison-row">
+                        <div class="comparison-item">
+                            <div class="comparison-label">
+                                <i class="fas fa-history"></i>
+                                <span>Previous Month</span>
+                            </div>
+                            <div class="comparison-value" id="lastMonthProfitMetric">$0.00</div>
+                        </div>
+                        <div class="comparison-item">
+                            <div class="comparison-label">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Growth</span>
+                            </div>
+                            <div class="comparison-growth" id="monthlyGrowthPercentageMetric">0%</div>
                         </div>
                     </div>
                 </div>
