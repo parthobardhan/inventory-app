@@ -99,86 +99,117 @@
 
     <!-- Hero Section -->
     <section class="hero-section">
-        <div class="container">
-            <div class="hero-content">
-                <div class="hero-text">
-                    <h1 class="hero-headline">Streamline Your Textile Inventory</h1>
-                    <p class="hero-subhead">Manage bed covers, cushion covers, sarees, and towels with our comprehensive inventory system. Track stock, analyze trends, and optimize your business.</p>
-                    
-                    <!-- AI Assistant & Profit Metrics Side by Side -->
-                    <div class="hero-content-row">
-                        <!-- Profit Metrics -->
-                        <div class="profit-comparison-card">
-                        <div class="profit-primary">
-                            <div class="profit-primary-label">
-                                <i class="fas fa-calendar-check"></i>
-                                <span>Current Month</span>
+        <div class="hero-container">
+            <!-- Main Content: Chat + Metrics -->
+            <div class="hero-main-content">
+                <!-- AI Chat Container -->
+                <div class="hero-chat-container" id="heroChatWidget">
+                    <!-- Drag and Drop Overlay -->
+                    <div class="ai-chat-drop-zone" id="heroDropZone">
+                        <div class="ai-chat-drop-zone-content">
+                            <div class="ai-chat-drop-zone-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
                             </div>
-                            <div class="profit-primary-value" id="currentMonthProfit">$0.00</div>
-                            <div class="profit-change-badge" id="monthlyProfitChange">Loading...</div>
+                            <div class="ai-chat-drop-zone-text">Drop your image here</div>
+                            <div class="ai-chat-drop-zone-hint">PNG, JPG, GIF up to 10MB</div>
                         </div>
-                        <div class="profit-divider">
-                            <div class="profit-trend-line"></div>
-                        </div>
-                        <div class="profit-secondary">
-                            <div class="profit-comparison-row">
-                                <div class="comparison-item">
-                                    <div class="comparison-label">
-                                        <i class="fas fa-history"></i>
-                                        <span>Previous Month</span>
-                                    </div>
-                                    <div class="comparison-value" id="lastMonthProfit">$0.00</div>
-                                </div>
-                                <div class="comparison-item">
-                                    <div class="comparison-label">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span>Growth</span>
-                                    </div>
-                                    <div class="comparison-growth" id="monthlyGrowthPercentage">0%</div>
-                                </div>
+                    </div>
+
+                    <div class="hero-chat-body" id="heroChatMessages">
+                        <div class="ai-message">
+                            <div class="ai-message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-message-content">
+                                <p>Hi! I'm your AI inventory assistant. I can help you:</p>
+                                <ul class="ai-suggestions-list">
+                                    <li>➕ Add new products</li>
+                                    <li>📦 Update inventory quantities</li>
+                                    <li>💰 Record sales</li>
+                                    <li>🔍 Search for products</li>
+                                    <li>📊 View analytics</li>
+                                </ul>
+                                <p>Try saying something like: <em>"Add 30 silk cushion covers for $45"</em> or <em>"Show me this week's sales analytics"</em></p>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- AI Assistant Banner -->
-                    <div class="ai-assistant-banner">
-                        <div class="ai-banner-icon">
-                            <i class="fas fa-robot"></i>
+
+                    <div class="hero-chat-input-container">
+                        <div class="hero-chat-suggestions" id="heroChatSuggestions">
+                            <button class="ai-suggestion-chip" data-message="Show me all low stock products">📉 Low stock items</button>
+                            <button class="ai-suggestion-chip" data-message="What are my top selling products this month?">🏆 Top products</button>
+                            <button class="ai-suggestion-chip" data-message="Add 20 cotton bed covers for $35">➕ Add product</button>
                         </div>
-                        <div class="ai-banner-text">
-                            <h3>AI Assistant</h3>
-                            <p>Talk to your inventory in natural language. Try: "Add 50 blue bed covers for $25" or "Show me this week's sales"</p>
+                        
+                        <!-- Image Preview Area -->
+                        <div class="ai-chat-image-preview" id="heroChatImagePreview" style="display: none;">
+                            <div class="ai-image-preview-container">
+                                <img id="heroChatPreviewImage" src="" alt="Preview" />
+                                <button class="ai-image-remove-btn" id="heroRemoveChatImage" type="button">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="ai-image-filename" id="heroChatImageFilename"></div>
                         </div>
-                        <button class="btn btn-light" id="openChatBtn">
-                            <i class="fas fa-comments me-2"></i>Start Chat
-                        </button>
+
+                        <div class="hero-chat-input-wrapper">
+                            <input type="file" id="heroChatImageInput" accept="image/*" style="display: none;" />
+                            <button id="heroUploadImageBtn" class="ai-upload-btn" type="button" title="Upload image">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button id="heroVoiceInputBtn" class="ai-voice-btn" type="button" title="Voice input">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <textarea 
+                                id="heroChatInput" 
+                                class="hero-chat-input" 
+                                placeholder="Type or speak your message..."
+                                rows="1"
+                            ></textarea>
+                            <button id="heroSendChatBtn" class="ai-send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="ai-chat-status" id="heroChatStatus"></div>
                     </div>
-                    </div>
-                    
-                    <!-- Main Action Buttons -->
-                    <div class="hero-ctas">
-                        <button class="btn btn-primary btn-hero" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                            <i class="fas fa-plus me-2"></i>Add Product
-                        </button>
-                        <a href="inventory.html" class="btn btn-secondary btn-hero">
-                            <i class="fas fa-boxes me-2"></i>View Inventory
-                        </a>
-                        <a href="analytics.html" class="btn btn-secondary btn-hero">
-                            <i class="fas fa-chart-pie me-2"></i>Analytics
-                        </a>
-                        <a href="/coverz" target="_blank" class="btn btn-outline-primary btn-hero">
-                            <i class="fas fa-external-link-alt me-2"></i>Your Landing Page
-                        </a>
-                        <a href="/bed-covers" target="_blank" class="btn btn-outline-secondary btn-hero">
-                            <i class="fas fa-bed me-2"></i>Bed Covers
-                        </a>
-                        <a href="/cushion-covers" target="_blank" class="btn btn-outline-secondary btn-hero">
-                            <i class="fas fa-couch me-2"></i>Cushion Covers
-                        </a>
-                    </div>
-                    
                 </div>
-                
+
+                <!-- Metrics Sidebar -->
+                <div class="hero-metrics-sidebar">
+                    <div class="profit-tile profit-tile-current">
+                        <div class="profit-tile-header">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Current Month</span>
+                        </div>
+                        <div class="profit-tile-value" id="currentMonthProfit">$0.00</div>
+                        <div class="profit-change-badge" id="monthlyProfitChange">Loading...</div>
+                    </div>
+                    
+                    <div class="profit-tile profit-tile-last">
+                        <div class="profit-tile-header">
+                            <i class="fas fa-history"></i>
+                            <span>Previous Month</span>
+                        </div>
+                        <div class="profit-tile-value" id="lastMonthProfit">$0.00</div>
+                        <div class="profit-growth" id="monthlyGrowthPercentage">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="hero-actions">
+                <button class="btn btn-primary btn-hero" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="fas fa-plus me-2"></i>Add Product
+                </button>
+                <button class="btn btn-success btn-hero" data-bs-toggle="modal" data-bs-target="#sellProductModal">
+                    <i class="fas fa-dollar-sign me-2"></i>Sell Product
+                </button>
+                <a href="inventory.html" class="btn btn-secondary btn-hero">
+                    <i class="fas fa-boxes me-2"></i>Inventory
+                </a>
+                <a href="analytics.html" class="btn btn-secondary btn-hero">
+                    <i class="fas fa-chart-pie me-2"></i>Analytics
+                </a>
             </div>
         </div>
     </section>
@@ -361,84 +392,65 @@
         </div>
     </div>
 
-    <!-- AI Agent Chat Interface -->
-    <div id="aiChatWidget" class="ai-chat-widget" style="display: none;">
-        <!-- Drag and Drop Overlay -->
-        <div class="ai-chat-drop-zone" id="dropZone">
-            <div class="ai-chat-drop-zone-content">
-                <div class="ai-chat-drop-zone-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
+    <!-- Sell Product Modal -->
+    <div class="modal fade" id="sellProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-dollar-sign me-2"></i>
+                        Sell Product
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="ai-chat-drop-zone-text">Drop your image here</div>
-                <div class="ai-chat-drop-zone-hint">PNG, JPG, GIF up to 10MB</div>
-            </div>
-        </div>
-        
-        <div class="ai-chat-header">
-            <div class="ai-chat-title">
-                <i class="fas fa-robot me-2"></i>
-                <span>AI Inventory Assistant</span>
-            </div>
-            <button class="ai-chat-close" id="closeChatBtn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="ai-chat-body" id="chatMessages">
-            <div class="ai-message">
-                <div class="ai-message-avatar">
-                    <i class="fas fa-robot"></i>
+                <div class="modal-body">
+                    <form id="sellProductForm">
+                        <input type="hidden" id="sellProductId">
+                        <input type="hidden" id="sellProductSku">
+                        <input type="hidden" id="sellMaxQuantity">
+                        
+                        <div class="mb-3">
+                            <label for="sellProductSelect" class="form-label">Select Product *</label>
+                            <select class="form-select" id="sellProductSelect" required>
+                                <option value="">Choose a product...</option>
+                            </select>
+                            <div class="invalid-feedback" id="sellProductSelectError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Product SKU:</strong></label>
+                            <div id="sellProductSkuDisplay" class="form-control-plaintext fw-bold text-primary">-</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellQuantity" class="form-label">Quantity to Sell *</label>
+                            <input type="number" class="form-control" id="sellQuantity" min="1" value="1" required>
+                            <div class="form-text">Available quantity: <span id="sellAvailableQuantity" class="fw-bold text-success">0</span></div>
+                            <div class="invalid-feedback" id="sellQuantityError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellPrice" class="form-label">Sell Price ($) *</label>
+                            <input type="number" class="form-control" id="sellPrice" min="0" step="0.01" value="0" required>
+                            <div class="invalid-feedback" id="sellPriceError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sellDate" class="form-label">Date Sold *</label>
+                            <input type="date" class="form-control" id="sellDate" required>
+                        </div>
+                    </form>
                 </div>
-                <div class="ai-message-content">
-                    <p>Hi! I'm your AI inventory assistant. I can help you:</p>
-                    <ul class="ai-suggestions-list">
-                        <li>➕ Add new products</li>
-                        <li>📦 Update inventory quantities</li>
-                        <li>💰 Record sales</li>
-                        <li>🔍 Search for products</li>
-                        <li>📊 View analytics</li>
-                        <li>📁 Open catalog pages</li>
-                    </ul>
-                    <p>Try saying something like: <em>"Add 30 silk cushion covers for $45"</em> or <em>"Show me this week's sales analytics"</em></p>
-                </div>
-            </div>
-        </div>
-        <div class="ai-chat-input-container">
-            <div class="ai-chat-suggestions" id="chatSuggestions">
-                <button class="ai-suggestion-chip" data-message="Show me all low stock products">📉 Low stock items</button>
-                <button class="ai-suggestion-chip" data-message="What are my top selling products this month?">🏆 Top products</button>
-                <button class="ai-suggestion-chip" data-message="Add 20 cotton bed covers for $35">➕ Add product</button>
-            </div>
-            <!-- Image Preview Area -->
-            <div class="ai-chat-image-preview" id="chatImagePreview" style="display: none;">
-                <div class="ai-image-preview-container">
-                    <img id="chatPreviewImage" src="" alt="Preview" />
-                    <button class="ai-image-remove-btn" id="removeChatImage" type="button">
-                        <i class="fas fa-times"></i>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSellBtn">
+                        <i class="fas fa-dollar-sign me-2"></i>Confirm Sale
                     </button>
                 </div>
-                <div class="ai-image-filename" id="chatImageFilename"></div>
             </div>
-            <div class="ai-chat-input-wrapper">
-                <input type="file" id="chatImageInput" accept="image/*" style="display: none;" />
-                <button id="uploadImageBtn" class="ai-upload-btn" type="button" title="Upload image">
-                    <i class="fas fa-image"></i>
-                </button>
-                <button id="voiceInputBtn" class="ai-voice-btn" type="button" title="Voice input">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <textarea 
-                    id="chatInput" 
-                    class="ai-chat-input" 
-                    placeholder="Type or speak your message..."
-                    rows="1"
-                ></textarea>
-                <button id="sendChatBtn" class="ai-send-btn">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-            <div class="ai-chat-status" id="chatStatus"></div>
         </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
