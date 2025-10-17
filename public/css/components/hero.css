@@ -5,13 +5,18 @@
 .hero-section {
     background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
     padding: 0.75rem 0 0.75rem;
-    min-height: auto;
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
 }
 
 .hero-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Main Content - Chat and Metrics Stacked */
@@ -19,6 +24,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
+    flex: 1;
     margin-bottom: 0.875rem;
 }
 
@@ -29,7 +35,8 @@
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
-    height: 520px;
+    flex: 1;
+    min-height: 600px;
     overflow: hidden;
     border: 1px solid #e5e7eb;
     position: relative;
@@ -290,6 +297,11 @@
     gap: 0.625rem;
     margin: 0 auto;
     max-width: 600px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, #f9fafb 85%, transparent 100%);
+    padding: 0.75rem 0;
+    z-index: 10;
 }
 
 /* Responsive Design */
@@ -297,6 +309,7 @@
 @media (max-width: 992px) {
     .hero-section {
         padding: 0.75rem 0 1rem;
+        min-height: calc(100vh - 80px);
     }
 
     .hero-container {
@@ -304,7 +317,7 @@
     }
 
     .hero-chat-container {
-        height: 500px;
+        min-height: 550px;
     }
 
     .hero-metrics-sidebar {
@@ -329,7 +342,7 @@
 @media (max-width: 768px) {
     .hero-section {
         padding: 0.625rem 0 0.75rem;
-        min-height: auto;
+        min-height: calc(100vh - 70px);
     }
 
     .hero-container {
@@ -337,7 +350,7 @@
     }
 
     .hero-chat-container {
-        height: 480px;
+        min-height: 500px;
         border-radius: 1.25rem;
     }
 
@@ -392,10 +405,11 @@
 @media (max-width: 480px) {
     .hero-section {
         padding: 0.5rem 0 0.625rem;
+        min-height: calc(100vh - 70px);
     }
 
     .hero-chat-container {
-        height: 440px;
+        min-height: 480px;
         border-radius: 1rem;
     }
 
