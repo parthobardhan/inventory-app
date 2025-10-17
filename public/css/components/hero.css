@@ -188,8 +188,9 @@
     font-weight: 700;
     color: #6b7280;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     margin-bottom: 0.75rem;
+    white-space: nowrap;
 }
 
 .profit-tile-header i {
