@@ -99,9 +99,9 @@
     color: inherit;
 }
 
-/* Set example line to 14px */
+/* Set example line to 15px */
 .ai-message-content p:last-child {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .ai-message-content em {
