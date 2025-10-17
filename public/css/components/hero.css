@@ -302,7 +302,7 @@
     margin: 0 auto;
     width: 100%;
     max-width: 600px;
-    padding: 0 0 0.5rem;
+    padding: 0;
     flex-shrink: 0;
 }
 
@@ -323,7 +323,7 @@
     }
 
     .hero-container {
-        padding: 0 0.75rem;
+        padding: 0 0.75rem 0.5rem;
     }
 
     .hero-main-content {
@@ -335,7 +335,7 @@
     
     .hero-actions {
         gap: 0.5rem;
-        padding: 0 0 0.5rem;
+        padding: 0;
     }
     
     .hero-actions .btn-hero {
@@ -370,7 +370,7 @@
     }
 
     .hero-container {
-        padding: 0 0.625rem;
+        padding: 0 0.625rem 0.5rem;
     }
 
     .hero-chat-container {
@@ -386,7 +386,7 @@
     
     .hero-actions {
         gap: 0.5rem;
-        padding: 0 0 0.5rem;
+        padding: 0;
     }
     
     .hero-actions .btn-hero {
@@ -455,7 +455,7 @@
     }
 
     .hero-container {
-        padding: 0 0.5rem;
+        padding: 0 0.5rem 0.5rem;
     }
 
     .hero-chat-container {
@@ -471,7 +471,7 @@
     
     .hero-actions {
         gap: 0.5rem;
-        padding: 0 0 0.5rem;
+        padding: 0;
     }
     
     .hero-actions .btn-hero {
