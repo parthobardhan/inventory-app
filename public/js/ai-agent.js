@@ -478,7 +478,7 @@ class AIAgentChat {
         this.chatImageFilename.textContent = '';
         this.chatImageInput.value = '';
         this.uploadImageBtn.classList.remove('has-image');
-        this.chatInput.placeholder = "Ask anything";
+        this.chatInput.placeholder = "Ask or instruct";
     }
 
     // Voice Recording Methods
