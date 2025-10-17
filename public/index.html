@@ -104,6 +104,11 @@
             <div class="hero-main-content">
                 <!-- AI Chat Container -->
                 <div class="hero-chat-container" id="heroChatWidget">
+                    <!-- Help Icon -->
+                    <button class="ai-help-icon" id="aiHelpIcon" title="Learn what I can do">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+
                     <!-- Drag and Drop Overlay -->
                     <div class="ai-chat-drop-zone" id="heroDropZone">
                         <div class="ai-chat-drop-zone-content">
@@ -121,14 +126,7 @@
                                 <i class="fas fa-robot"></i>
                             </div>
                             <div class="ai-message-content">
-                                <p>Hi! I'm your AI inventory assistant. I can help you:</p>
-                                <ul class="ai-suggestions-list">
-                                    <li>➕ Add new products</li>
-                                    <li>📦 Update inventory quantities</li>
-                                    <li>💰 Record sales</li>
-                                    <li>🔍 Search for products</li>
-                                    <li>📊 View analytics</li>
-                                </ul>
+                                <p>How can I help you today?</p>
                                 <p>Try saying something like: <em>"Add 30 silk cushion covers for $45"</em> or <em>"Show me this week's sales analytics"</em></p>
                             </div>
                         </div>
@@ -136,9 +134,9 @@
 
                     <div class="hero-chat-input-container">
                         <div class="hero-chat-suggestions" id="heroChatSuggestions">
-                            <button class="ai-suggestion-chip" data-message="Show me all low stock products">📉 Low stock items</button>
-                            <button class="ai-suggestion-chip" data-message="What are my top selling products this month?">🏆 Top products</button>
-                            <button class="ai-suggestion-chip" data-message="Add 20 cotton bed covers for $35">➕ Add product</button>
+                            <button class="ai-suggestion-chip" data-message="Show me all low stock products">📉 Low stock</button>
+                            <button class="ai-suggestion-chip" data-message="What are my top selling products this month?">🏆 Top sellers</button>
+                            <button class="ai-suggestion-chip" data-message="Show me this week's sales analytics">📊 Analytics</button>
                         </div>
                         
                         <!-- Image Preview Area -->
@@ -163,7 +161,7 @@
                             <textarea 
                                 id="heroChatInput" 
                                 class="hero-chat-input" 
-                                placeholder="Type or speak your message..."
+                                placeholder="Type or speak your message"
                                 rows="1"
                             ></textarea>
                             <button id="heroSendChatBtn" class="ai-send-btn">
@@ -387,6 +385,69 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Help Modal -->
+    <div class="modal fade" id="aiHelpModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-robot me-2"></i>
+                        AI Inventory Assistant
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <p class="mb-3"><strong>I can help you manage your inventory efficiently!</strong></p>
+                    <div class="ai-help-capabilities">
+                        <div class="ai-help-item">
+                            <i class="fas fa-plus-circle text-success"></i>
+                            <div>
+                                <strong>Add Products</strong>
+                                <p class="text-muted mb-0">Add new inventory items with quantities and prices</p>
+                            </div>
+                        </div>
+                        <div class="ai-help-item">
+                            <i class="fas fa-boxes text-primary"></i>
+                            <div>
+                                <strong>Update Inventory</strong>
+                                <p class="text-muted mb-0">Modify quantities, prices, and product details</p>
+                            </div>
+                        </div>
+                        <div class="ai-help-item">
+                            <i class="fas fa-dollar-sign text-warning"></i>
+                            <div>
+                                <strong>Record Sales</strong>
+                                <p class="text-muted mb-0">Track sales and automatically update stock</p>
+                            </div>
+                        </div>
+                        <div class="ai-help-item">
+                            <i class="fas fa-search text-info"></i>
+                            <div>
+                                <strong>Search Products</strong>
+                                <p class="text-muted mb-0">Find products quickly by name or category</p>
+                            </div>
+                        </div>
+                        <div class="ai-help-item">
+                            <i class="fas fa-chart-line text-danger"></i>
+                            <div>
+                                <strong>View Analytics</strong>
+                                <p class="text-muted mb-0">Get insights on sales, profit, and trends</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <p class="mb-2"><strong>Example Commands:</strong></p>
+                    <ul class="ai-help-examples">
+                        <li><em>"Add 30 silk cushion covers for $45"</em></li>
+                        <li><em>"Show me this week's sales analytics"</em></li>
+                        <li><em>"What products are low on stock?"</em></li>
+                        <li><em>"Record a sale of 5 bed covers at $50 each"</em></li>
+                    </ul>
                 </div>
             </div>
         </div>

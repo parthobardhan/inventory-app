@@ -41,6 +41,9 @@ class AIAgentChat {
         // Drag and drop elements
         this.dropZone = document.getElementById('heroDropZone');
         this.inputContainer = document.querySelector('.hero-chat-input-container');
+        
+        // Help icon
+        this.helpIcon = document.getElementById('aiHelpIcon');
     }
 
     attachEventListeners() {
@@ -91,6 +94,12 @@ class AIAgentChat {
             } else {
                 this.startRecording();
             }
+        });
+
+        // Help icon
+        this.helpIcon?.addEventListener('click', () => {
+            const helpModal = new bootstrap.Modal(document.getElementById('aiHelpModal'));
+            helpModal.show();
         });
 
         // Drag and drop events
@@ -173,7 +182,7 @@ class AIAgentChat {
         reader.readAsDataURL(file);
 
         // Update placeholder text
-        this.chatInput.placeholder = "Describe what you want to do with this image...";
+        this.chatInput.placeholder = "Describe what you want to do with this image";
         this.chatInput.focus();
     }
 
@@ -469,7 +478,7 @@ class AIAgentChat {
         this.chatImageFilename.textContent = '';
         this.chatImageInput.value = '';
         this.uploadImageBtn.classList.remove('has-image');
-        this.chatInput.placeholder = "Type or speak your message...";
+        this.chatInput.placeholder = "Type or speak your message";
     }
 
     // Voice Recording Methods
