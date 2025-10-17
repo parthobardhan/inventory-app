@@ -122,7 +122,6 @@ class UIManager {
         
         const currentMonthElement = document.getElementById('currentMonthProfit');
         const lastMonthElement = document.getElementById('lastMonthProfit');
-        const changeElement = document.getElementById('monthlyProfitChange'); // FIXED: was 'profitChange'
 
         if (currentMonthElement) {
             currentMonthElement.textContent = `$${profitData.currentMonth.toFixed(2)}`;
@@ -136,21 +135,6 @@ class UIManager {
             console.log('✅ Updated lastMonthProfit');
         } else {
             console.warn('⚠️ lastMonthProfit element not found');
-        }
-        
-        if (changeElement) {
-            const change = profitData.currentMonth - profitData.lastMonth;
-            const percentage = profitData.lastMonth > 0 ? 
-                ((change / profitData.lastMonth) * 100).toFixed(1) : 0;
-            
-            changeElement.innerHTML = `
-                <span class="${change >= 0 ? 'text-success' : 'text-danger'}">
-                    <i class="fas fa-arrow-${change >= 0 ? 'up' : 'down'}"></i>
-                    ${change >= 0 ? '+' : ''}$${Math.abs(change).toFixed(2)} (${percentage}%)
-                </span>`;
-            console.log('✅ Updated monthlyProfitChange');
-        } else {
-            console.warn('⚠️ monthlyProfitChange element not found');
         }
     }
 
