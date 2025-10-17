@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat Test - Inventory App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .status {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.not-ready {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot.green {
+            background: #28a745;
+        }
+
+        .dot.red {
+            background: #dc3545;
+        }
+
+        .dot.yellow {
+            background: #ffc107;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .record-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .record-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .record-btn.recording {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .stop-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .stop-btn:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .clear-btn:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .message-input-container {
+            margin-bottom: 20px;
+        }
+
+        .message-input-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+
+        #messageInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 30px;
+            min-width: 120px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .output {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .output-section {
+            margin-bottom: 20px;
+        }
+
+        .output-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .output-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .output-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            color: #212529;
+            line-height: 1.6;
+            border-left: 4px solid #667eea;
+        }
+
+        .output-content.transcript {
+            border-left-color: #667eea;
+        }
+
+        .output-content.response {
+            border-left-color: #28a745;
+        }
+
+        .output-content.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .metadata {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .metadata-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6c757d;
+        }
+
+        .confidence {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .confidence.high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .tools-used {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .tool-badge {
+            background: #e7f3ff;
+            color: #004085;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            background: #e7f3ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .examples h3 {
+            color: #004085;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .examples ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .examples li {
+            color: #004085;
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .examples li:before {
+            content: "🎤";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Voice Chat Test</h1>
+        <p class="subtitle">Test the voice-to-text integration with AI agent</p>
+
+        <div class="status" id="statusContainer">
+            <div class="status-badge loading">
+                <span class="dot yellow"></span>
+                Checking services...
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="record-btn" id="recordBtn" disabled>
+                <span>🎤</span>
+                <span id="recordBtnText">Start Recording</span>
+            </button>
+            <button class="stop-btn" id="stopBtn" disabled>
+                <span>⏹️</span>
+                <span>Stop</span>
+            </button>
+            <button class="clear-btn" id="clearBtn">
+                <span>🗑️</span>
+                <span>Clear</span>
+            </button>
+        </div>
+
+        <div class="message-input-container" id="messageInputContainer" style="display: none;">
+            <div class="message-input-label">
+                <span>✏️</span>
+                <span>Your Message (edit if needed)</span>
+            </div>
+            <div class="message-input-wrapper">
+                <textarea id="messageInput" placeholder="Your transcribed message will appear here..."></textarea>
+                <button class="send-btn" id="sendBtn" disabled>
+                    <span>📤</span>
+                    <span>Send</span>
+                </button>
+            </div>
+            <div class="metadata" id="transcriptMetadata"></div>
+        </div>
+
+        <div class="output" id="output" style="display: none;">
+            <div class="output-section" id="transcriptSection" style="display: none;">
+                <div class="output-label">
+                    <span>📝</span>
+                    <span>Transcript</span>
+                </div>
+                <div class="output-content transcript" id="transcript"></div>
+                <div class="metadata" id="metadata"></div>
+            </div>
+
+            <div class="output-section" id="responseSection" style="display: none;">
+                <div class="output-label">
+                    <span>🤖</span>
+                    <span>AI Agent Response</span>
+                </div>
+                <div class="output-content response" id="response"></div>
+                <div class="tools-used" id="toolsUsed"></div>
+            </div>
+
+            <div class="output-section" id="errorSection" style="display: none;">
+                <div class="output-label">
+                    <span>❌</span>
+                    <span>Error</span>
+                </div>
+                <div class="output-content error" id="error"></div>
+            </div>
+
+            <div class="output-section" id="loadingSection" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span id="loadingText">Processing...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>💡 How to Use Voice Chat</h3>
+            <ol style="list-style: decimal; padding-left: 20px; color: #004085;">
+                <li style="padding: 8px 0; padding-left: 5px;">Click "Start Recording" and speak your command</li>
+                <li style="padding: 8px 0; padding-left: 5px;">Recording stops automatically after 1.5s of silence (or click "Stop")</li>
+                <li style="padding: 8px 0; padding-left: 5px;">Review the transcribed text in the text box</li>
+                <li style="padding: 8px 0; padding-left: 5px;">Edit if needed, then click "Send" to process</li>
+            </ol>
+            
+            <h3 style="margin-top: 20px;">💬 Example Voice Commands</h3>
+            <ul>
+                <li>Add 30 cushion covers for $45 SKU CC-003</li>
+                <li>Show me all bed covers</li>
+                <li>Record a sale of 5 sarees</li>
+                <li>What are the top selling products this month?</li>
+                <li>Show me low stock alerts</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext;
+        let analyser;
+        let silenceTimeout;
+        let silenceStart = null;
+        const SILENCE_THRESHOLD = 0.01; // Adjust this value (0-1) for sensitivity
+        const SILENCE_DURATION = 1500; // Stop after 1.5 seconds of silence
+        const MAX_RECORDING_TIME = 30000; // Max 30 seconds
+
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const messageInput = document.getElementById('messageInput');
+        const messageInputContainer = document.getElementById('messageInputContainer');
+        const output = document.getElementById('output');
+        const statusContainer = document.getElementById('statusContainer');
+        
+        let currentTranscriptData = null;
+
+        // Check service status on load
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/voice/status');
+                const result = await response.json();
+
+                statusContainer.innerHTML = '';
+
+                if (result.status.voiceChat.ready) {
+                    statusContainer.innerHTML = `
+                        <div class="status-badge ready">
+                            <span class="dot green"></span>
+                            Voice Chat Ready
+                        </div>
+                    `;
+                    recordBtn.disabled = false;
+                } else {
+                    if (!result.status.deepgram.ready) {
+                        statusContainer.innerHTML += `
+                            <div class="status-badge not-ready">
+                                <span class="dot red"></span>
+                                Deepgram Not Configured
+                            </div>
+                        `;
+                    }
+                    if (!result.status.openai.ready) {
+                        statusContainer.innerHTML += `
+                            <div class="status-badge not-ready">
+                                <span class="dot red"></span>
+                                OpenAI Not Configured
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+                statusContainer.innerHTML = `
+                    <div class="status-badge not-ready">
+                        <span class="dot red"></span>
+                        Service Check Failed
+                    </div>
+                `;
+            }
+        }
+
+        checkStatus();
+
+        recordBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                // Set up audio analysis for silence detection
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 2048;
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await processAudio(audioBlob);
+
+                    // Stop all tracks and cleanup
+                    stream.getTracks().forEach(track => track.stop());
+                    if (audioContext) {
+                        audioContext.close();
+                    }
+                    clearTimeout(silenceTimeout);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                recordBtn.classList.add('recording');
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+                document.getElementById('recordBtnText').textContent = 'Recording...';
+
+                output.style.display = 'block';
+                showLoading('🎤 Listening... (will auto-stop when you finish speaking)');
+
+                // Start silence detection
+                detectSilence(stream);
+
+                // Safety timeout: auto-stop after max recording time
+                setTimeout(() => {
+                    if (isRecording) {
+                        console.log('Max recording time reached');
+                        stopRecording();
+                    }
+                }, MAX_RECORDING_TIME);
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                showError('Failed to access microphone. Please grant permission and try again.');
+            }
+        });
+
+        // Silence detection function
+        function detectSilence(stream) {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            function checkAudioLevel() {
+                if (!isRecording) return;
+
+                analyser.getByteTimeDomainData(dataArray);
+                
+                // Calculate RMS (Root Mean Square) to detect audio level
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const normalized = (dataArray[i] - 128) / 128;
+                    sum += normalized * normalized;
+                }
+                const rms = Math.sqrt(sum / bufferLength);
+                
+                // Check if audio level is below silence threshold
+                if (rms < SILENCE_THRESHOLD) {
+                    if (silenceStart === null) {
+                        silenceStart = Date.now();
+                        console.log('Silence detected, waiting...');
+                    } else {
+                        const silenceDuration = Date.now() - silenceStart;
+                        if (silenceDuration > SILENCE_DURATION) {
+                            console.log('Silence duration exceeded, stopping...');
+                            stopRecording();
+                            return;
+                        }
+                    }
+                } else {
+                    // Audio detected, reset silence timer
+                    silenceStart = null;
+                }
+                
+                // Continue checking
+                requestAnimationFrame(checkAudioLevel);
+            }
+            
+            checkAudioLevel();
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+
+                recordBtn.classList.remove('recording');
+                recordBtn.disabled = false;
+                stopBtn.disabled = true;
+                document.getElementById('recordBtnText').textContent = 'Start Recording';
+
+                showLoading('Processing audio...');
+                silenceStart = null;
+            }
+        }
+
+        stopBtn.addEventListener('click', () => {
+            stopRecording();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            output.style.display = 'none';
+            messageInputContainer.style.display = 'none';
+            messageInput.value = '';
+            sendBtn.disabled = true;
+            currentTranscriptData = null;
+            hideAllSections();
+        });
+
+        // Enable/disable send button based on message content
+        messageInput.addEventListener('input', () => {
+            sendBtn.disabled = !messageInput.value.trim();
+        });
+
+        // Handle Enter key to send (Ctrl+Enter for new line)
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendBtn.disabled) {
+                    sendBtn.click();
+                }
+            }
+        });
+
+        // Handle send button click
+        sendBtn.addEventListener('click', async () => {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            try {
+                sendBtn.disabled = true;
+                showLoading('Processing with AI agent...');
+
+                // Call the agent API with the transcribed text
+                const response = await fetch('/api/agent/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationHistory: []
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showResponse(result.message, result.toolsUsed);
+                } else {
+                    showError(result.error || 'Failed to process message');
+                }
+            } catch (error) {
+                console.error('Processing error:', error);
+                showError('Failed to process message: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        });
+
+        async function processAudio(audioBlob) {
+            showLoading('Transcribing audio...');
+
+            try {
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+
+                    // Send to transcribe API only
+                    const response = await fetch('/api/voice/transcribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            audioData: base64Audio,
+                            mimeType: 'audio/webm'
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.transcript) {
+                        // Store transcript data
+                        currentTranscriptData = result;
+                        
+                        // Show the transcript in the text box
+                        messageInput.value = result.transcript;
+                        sendBtn.disabled = false;
+                        
+                        // Show the input container
+                        messageInputContainer.style.display = 'block';
+                        
+                        // Show metadata
+                        const confidencePercent = (result.confidence * 100).toFixed(1);
+                        const confidenceClass = result.confidence >= 0.9 ? 'high' : result.confidence >= 0.7 ? 'medium' : 'low';
+                        
+                        document.getElementById('transcriptMetadata').innerHTML = `
+                            <div class="metadata-item">
+                                <span>Confidence:</span>
+                                <span class="confidence ${confidenceClass}">${confidencePercent}%</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span>⏱️</span>
+                                <span>Duration: ${result.metadata.duration.toFixed(2)}s</span>
+                            </div>
+                            <div class="metadata-item" style="color: #28a745;">
+                                <span>✅</span>
+                                <span>Ready to send - you can edit the message if needed</span>
+                            </div>
+                        `;
+                        
+                        // Hide loading
+                        output.style.display = 'none';
+                        hideAllSections();
+                        
+                        // Focus on the text input
+                        messageInput.focus();
+                        
+                    } else {
+                        showError(result.error || 'No speech detected in the audio');
+                        messageInputContainer.style.display = 'none';
+                    }
+                };
+            } catch (error) {
+                console.error('Processing error:', error);
+                showError('Failed to transcribe audio: ' + error.message);
+                messageInputContainer.style.display = 'none';
+            }
+        }
+
+        function showTranscript(transcript, confidence, metadata) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('transcriptSection').style.display = 'block';
+            document.getElementById('transcript').textContent = transcript;
+
+            const confidencePercent = (confidence * 100).toFixed(1);
+            const confidenceClass = confidence >= 0.9 ? 'high' : confidence >= 0.7 ? 'medium' : 'low';
+
+            document.getElementById('metadata').innerHTML = `
+                <div class="metadata-item">
+                    <span>Confidence:</span>
+                    <span class="confidence ${confidenceClass}">${confidencePercent}%</span>
+                </div>
+                <div class="metadata-item">
+                    <span>⏱️</span>
+                    <span>Duration: ${metadata.duration.toFixed(2)}s</span>
+                </div>
+            `;
+        }
+
+        function showResponse(response, tools) {
+            document.getElementById('responseSection').style.display = 'block';
+            document.getElementById('response').textContent = response;
+
+            const toolsContainer = document.getElementById('toolsUsed');
+            if (tools && tools.length > 0) {
+                toolsContainer.innerHTML = tools.map(tool => 
+                    `<span class="tool-badge">🔧 ${tool}</span>`
+                ).join('');
+            } else {
+                toolsContainer.innerHTML = '';
+            }
+        }
+
+        function showError(message) {
+            hideAllSections();
+            output.style.display = 'block';
+            document.getElementById('errorSection').style.display = 'block';
+            document.getElementById('error').textContent = message;
+        }
+
+        function showLoading(message) {
+            hideAllSections();
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('loadingText').textContent = message;
+        }
+
+        function hideAllSections() {
+            document.getElementById('transcriptSection').style.display = 'none';
+            document.getElementById('responseSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+

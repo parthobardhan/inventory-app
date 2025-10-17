@@ -6,6 +6,17 @@ class AIAgentChat {
         this.selectedImage = null;
         this.initializeElements();
         this.attachEventListeners();
+        
+        // Voice recording state
+        this.isRecording = false;
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.audioContext = null;
+        this.analyser = null;
+        this.silenceStart = null;
+        this.SILENCE_THRESHOLD = 0.01;
+        this.SILENCE_DURATION = 1500; // 1.5 seconds
+        this.MAX_RECORDING_TIME = 30000; // 30 seconds
     }
 
     initializeElements() {
@@ -25,6 +36,9 @@ class AIAgentChat {
         this.chatPreviewImage = document.getElementById('chatPreviewImage');
         this.removeChatImage = document.getElementById('removeChatImage');
         this.chatImageFilename = document.getElementById('chatImageFilename');
+        
+        // Voice input elements
+        this.voiceInputBtn = document.getElementById('voiceInputBtn');
         
         // Drag and drop elements
         this.dropZone = document.getElementById('dropZone');
@@ -74,6 +88,15 @@ class AIAgentChat {
 
         this.removeChatImage?.addEventListener('click', () => {
             this.clearImage();
+        });
+
+        // Voice input
+        this.voiceInputBtn?.addEventListener('click', () => {
+            if (this.isRecording) {
+                this.stopRecording();
+            } else {
+                this.startRecording();
+            }
         });
 
         // Drag and drop events
@@ -466,7 +489,184 @@ class AIAgentChat {
         this.chatImageFilename.textContent = '';
         this.chatImageInput.value = '';
         this.uploadImageBtn.classList.remove('has-image');
-        this.chatInput.placeholder = "Type your message... (e.g., 'Add this as a bed cover for $25')";
+        this.chatInput.placeholder = "Type or speak your message...";
+    }
+
+    // Voice Recording Methods
+    async startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.audioChunks = [];
+
+            // Set up audio analysis for silence detection
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.analyser = this.audioContext.createAnalyser();
+            const source = this.audioContext.createMediaStreamSource(stream);
+            source.connect(this.analyser);
+            this.analyser.fftSize = 2048;
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                this.audioChunks.push(event.data);
+            };
+
+            this.mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                await this.processAudio(audioBlob);
+
+                // Stop all tracks and cleanup
+                stream.getTracks().forEach(track => track.stop());
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+            };
+
+            this.mediaRecorder.start();
+            this.isRecording = true;
+
+            // Update UI
+            this.voiceInputBtn.classList.add('recording');
+            this.voiceInputBtn.title = 'Recording... (Click to stop)';
+            this.setStatus('🎤 Listening... (will auto-stop when you finish)', 'recording');
+            this.sendBtn.disabled = true;
+            this.uploadImageBtn.disabled = true;
+
+            // Start silence detection
+            this.detectSilence();
+
+            // Safety timeout
+            setTimeout(() => {
+                if (this.isRecording) {
+                    console.log('Max recording time reached');
+                    this.stopRecording();
+                }
+            }, this.MAX_RECORDING_TIME);
+
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            this.setStatus('❌ Failed to access microphone. Please grant permission.', 'error');
+            this.voiceInputBtn.classList.remove('recording', 'processing');
+        }
+    }
+
+    detectSilence() {
+        const bufferLength = this.analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const checkAudioLevel = () => {
+            if (!this.isRecording) return;
+
+            this.analyser.getByteTimeDomainData(dataArray);
+            
+            // Calculate RMS (Root Mean Square)
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const normalized = (dataArray[i] - 128) / 128;
+                sum += normalized * normalized;
+            }
+            const rms = Math.sqrt(sum / bufferLength);
+            
+            // Check if audio level is below silence threshold
+            if (rms < this.SILENCE_THRESHOLD) {
+                if (this.silenceStart === null) {
+                    this.silenceStart = Date.now();
+                } else {
+                    const silenceDuration = Date.now() - this.silenceStart;
+                    if (silenceDuration > this.SILENCE_DURATION) {
+                        console.log('Silence detected, stopping...');
+                        this.stopRecording();
+                        return;
+                    }
+                }
+            } else {
+                // Audio detected, reset silence timer
+                this.silenceStart = null;
+            }
+            
+            // Continue checking
+            requestAnimationFrame(checkAudioLevel);
+        };
+        
+        checkAudioLevel();
+    }
+
+    stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            this.silenceStart = null;
+
+            // Update UI
+            this.voiceInputBtn.classList.remove('recording');
+            this.voiceInputBtn.classList.add('processing');
+            this.voiceInputBtn.title = 'Processing...';
+            this.setStatus('⏳ Processing audio...', 'processing');
+        }
+    }
+
+    async processAudio(audioBlob) {
+        try {
+            // Convert blob to base64
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+
+            reader.onloadend = async () => {
+                const base64Audio = reader.result.split(',')[1];
+
+                this.setStatus('🔄 Transcribing audio...', 'processing');
+
+                // Send to transcribe API only (not full chat)
+                const response = await fetch('/api/voice/transcribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        audioData: base64Audio,
+                        mimeType: 'audio/webm'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.transcript) {
+                    // Put transcribed text in the input field
+                    this.chatInput.value = result.transcript;
+                    
+                    // Show confidence and status
+                    const confidencePercent = (result.confidence * 100).toFixed(1);
+                    const confidenceEmoji = result.confidence >= 0.9 ? '✅' : result.confidence >= 0.7 ? '⚠️' : '❌';
+                    
+                    this.setStatus(
+                        `${confidenceEmoji} Transcribed (${confidencePercent}% confidence). Review and click Send.`, 
+                        'success'
+                    );
+                    
+                    // Focus on the input so user can review/edit
+                    this.chatInput.focus();
+                    
+                    // Clear status after 5 seconds
+                    setTimeout(() => this.setStatus('', ''), 5000);
+                } else {
+                    this.setStatus('❌ ' + (result.error || 'No speech detected'), 'error');
+                }
+            };
+
+            reader.onerror = (error) => {
+                console.error('Error reading audio:', error);
+                this.setStatus('❌ Failed to read audio', 'error');
+            };
+
+        } catch (error) {
+            console.error('Error processing audio:', error);
+            this.setStatus('❌ Error: ' + error.message, 'error');
+        } finally {
+            // Reset UI
+            this.voiceInputBtn.classList.remove('recording', 'processing');
+            this.voiceInputBtn.title = 'Voice input';
+            this.sendBtn.disabled = false;
+            this.uploadImageBtn.disabled = false;
+        }
     }
 }
 
