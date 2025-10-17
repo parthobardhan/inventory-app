@@ -69,6 +69,9 @@ async function getProfitStats(period = 'month') {
       case 'month':
         startDate = new Date(currentYear, currentMonth, 1);
         break;
+      case '2months':
+        startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
+        break;
       case 'year':
         startDate = new Date(currentYear, 0, 1);
         break;
@@ -141,6 +144,8 @@ function getPreviousPeriodStart(period, currentYear, currentMonth) {
       return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     case 'month':
       return new Date(currentYear, currentMonth - 1, 1);
+    case '2months':
+      return new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000); // 120 days ago (previous 2 months)
     case 'year':
       return new Date(currentYear - 1, 0, 1);
     case 'all':
@@ -222,6 +227,9 @@ async function getTopProducts(options = {}) {
         break;
       case 'month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case '2months':
+        startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
         break;
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1);
@@ -311,6 +319,9 @@ async function getSalesTrends(period = 'month') {
         break;
       case 'month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case '2months':
+        startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
         break;
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1);

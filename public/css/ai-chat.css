@@ -443,8 +443,9 @@
     }
 }
 
-/* Image Upload Button */
-.ai-upload-btn {
+/* Image Upload Button & Voice Button */
+.ai-upload-btn,
+.ai-voice-btn {
     background: #e9ecef;
     border: none;
     color: #495057;
@@ -458,9 +459,11 @@
     transition: all 0.2s ease;
     font-size: 18px;
     flex-shrink: 0;
+    position: relative;
 }
 
-.ai-upload-btn:hover {
+.ai-upload-btn:hover,
+.ai-voice-btn:hover {
     background: #667eea;
     color: white;
     transform: translateY(-2px);
@@ -470,6 +473,45 @@
 .ai-upload-btn.has-image {
     background: #667eea;
     color: white;
+}
+
+/* Voice Button States */
+.ai-voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ai-voice-btn.recording {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    animation: voicePulse 1.5s ease-in-out infinite;
+}
+
+.ai-voice-btn.recording:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+@keyframes voicePulse {
+    0%, 100% { 
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4), 0 0 0 0 rgba(245, 87, 108, 0.7);
+    }
+    50% { 
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4), 0 0 0 10px rgba(245, 87, 108, 0);
+    }
+}
+
+.ai-voice-btn.processing {
+    background: #ffc107;
+    color: white;
+}
+
+.ai-voice-btn.processing i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Image Preview */

@@ -304,7 +304,7 @@ DO NOT put the SKU in the description field. Extract the alphanumeric code and p
         properties: {
           period: {
             type: 'string',
-            enum: ['today', 'week', 'month', 'year', 'all'],
+            enum: ['today', 'week', 'month', '2months', 'year', 'all'],
             description: 'The time period for analytics',
           },
         },
@@ -327,13 +327,13 @@ DO NOT put the SKU in the description field. Extract the alphanumeric code and p
     type: 'function',
     function: {
       name: 'get_top_products',
-      description: 'Get top selling products ranked by revenue, quantity sold, or profit.',
+      description: 'Get top selling products ranked by revenue, quantity sold, or profit. Returns product name, SKU, and profit information.',
       parameters: {
         type: 'object',
         properties: {
           period: {
             type: 'string',
-            enum: ['today', 'week', 'month', 'year', 'all'],
+            enum: ['today', 'week', 'month', '2months', 'year', 'all'],
             description: 'Time period for analysis',
           },
           sort_by: {
@@ -375,7 +375,7 @@ DO NOT put the SKU in the description field. Extract the alphanumeric code and p
         properties: {
           period: {
             type: 'string',
-            enum: ['week', 'month', 'year'],
+            enum: ['week', 'month', '2months', 'year'],
             description: 'Period for trend analysis',
           },
         },
@@ -990,7 +990,18 @@ Be conversational, friendly, and efficient. When the user makes a request:
 
 When providing information, be specific with numbers and details. If a tool execution fails, explain why and suggest alternatives.
 
-IMPORTANT: When extracting SKU codes from user input, extract ONLY the alphanumeric code (e.g., "CC-003", "BED-001") and do NOT include the word "SKU" itself.`,
+IMPORTANT: If user's intent was to modify a product, inventory or a previous transaction, only update the parameter they are looking to modify. Do not update other parameters that are not mentioned.
+IMPORTANT: When extracting SKU codes from user input, extract ONLY the alphanumeric code (e.g., "CC-003", "BED-001") and do NOT include the word "SKU" itself.
+
+SPECIAL INSTRUCTIONS FOR TOP PRODUCTS:
+When the user asks about "top products" or "best selling products", provide comprehensive insights:
+1. Call get_top_products with period='all' to get the all-time top selling product
+2. Call get_top_products with period='2months' to get the top product from the last 2 months
+3. In your response, clearly present BOTH:
+   - All-Time Top Product: Include product name, SKU, and total profit
+   - Recent Top Product (Last 2 Months): Include product name, SKU, and profit for that period
+4. If the products differ, explain the difference (e.g., "While X has been your best seller overall, Y has been performing exceptionally well recently")
+5. Always sort by 'quantity' to identify which product sold the most units`,
       },
       ...conversationHistory,
       {
@@ -1161,7 +1172,17 @@ When the user wants to add a product with an image:
 - Call the add_product tool with all this information
 - The image has been uploaded and will be automatically associated with the product
 
-Be conversational, friendly, and efficient.${uploadedImage ? `\n\nNote: The image has been successfully uploaded and stored.` : ''}`,
+Be conversational, friendly, and efficient.${uploadedImage ? `\n\nNote: The image has been successfully uploaded and stored.` : ''}
+
+SPECIAL INSTRUCTIONS FOR TOP PRODUCTS:
+When the user asks about "top products" or "best selling products", provide comprehensive insights:
+1. Call get_top_products with period='all' to get the all-time top selling product
+2. Call get_top_products with period='2months' to get the top product from the last 2 months
+3. In your response, clearly present BOTH:
+   - All-Time Top Product: Include product name, SKU, and total profit
+   - Recent Top Product (Last 2 Months): Include product name, SKU, and profit for that period
+4. If the products differ, explain the difference (e.g., "While X has been your best seller overall, Y has been performing exceptionally well recently")
+5. Always sort by 'quantity' to identify which product sold the most units`,
       },
       ...conversationHistory,
       {

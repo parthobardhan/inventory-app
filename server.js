@@ -17,6 +17,7 @@ app.set('trust proxy', 1);
 const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
 const agentRoutes = require('./routes/agent');
+const voiceRoutes = require('./routes/voice');
 
 // Rate limiting
 const limiter = rateLimit({
@@ -208,6 +209,7 @@ const initDB = async () => {
 app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
