@@ -112,7 +112,7 @@
 .hero-chat-input-wrapper {
     display: flex;
     gap: 0.5rem;
-    align-items: flex-end;
+    align-items: center;
 }
 
 .hero-chat-input {
