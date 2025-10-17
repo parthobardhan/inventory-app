@@ -20,36 +20,30 @@ class AIAgentChat {
     }
 
     initializeElements() {
-        this.chatWidget = document.getElementById('aiChatWidget');
-        this.chatMessages = document.getElementById('chatMessages');
-        this.chatInput = document.getElementById('chatInput');
-        this.sendBtn = document.getElementById('sendChatBtn');
-        this.openChatBtn = document.getElementById('openChatBtn');
-        this.closeChatBtn = document.getElementById('closeChatBtn');
-        this.chatStatus = document.getElementById('chatStatus');
+        this.chatWidget = document.getElementById('heroChatWidget');
+        this.chatMessages = document.getElementById('heroChatMessages');
+        this.chatInput = document.getElementById('heroChatInput');
+        this.sendBtn = document.getElementById('heroSendChatBtn');
+        this.chatStatus = document.getElementById('heroChatStatus');
         this.suggestionChips = document.querySelectorAll('.ai-suggestion-chip');
         
         // Image upload elements
-        this.uploadImageBtn = document.getElementById('uploadImageBtn');
-        this.chatImageInput = document.getElementById('chatImageInput');
-        this.chatImagePreview = document.getElementById('chatImagePreview');
-        this.chatPreviewImage = document.getElementById('chatPreviewImage');
-        this.removeChatImage = document.getElementById('removeChatImage');
-        this.chatImageFilename = document.getElementById('chatImageFilename');
+        this.uploadImageBtn = document.getElementById('heroUploadImageBtn');
+        this.chatImageInput = document.getElementById('heroChatImageInput');
+        this.chatImagePreview = document.getElementById('heroChatImagePreview');
+        this.chatPreviewImage = document.getElementById('heroChatPreviewImage');
+        this.removeChatImage = document.getElementById('heroRemoveChatImage');
+        this.chatImageFilename = document.getElementById('heroChatImageFilename');
         
         // Voice input elements
-        this.voiceInputBtn = document.getElementById('voiceInputBtn');
+        this.voiceInputBtn = document.getElementById('heroVoiceInputBtn');
         
         // Drag and drop elements
-        this.dropZone = document.getElementById('dropZone');
-        this.inputContainer = document.querySelector('.ai-chat-input-container');
+        this.dropZone = document.getElementById('heroDropZone');
+        this.inputContainer = document.querySelector('.hero-chat-input-container');
     }
 
     attachEventListeners() {
-        // Open/close chat
-        this.openChatBtn?.addEventListener('click', () => this.openChat());
-        this.closeChatBtn?.addEventListener('click', () => this.closeChat());
-
         // Send message
         this.sendBtn?.addEventListener('click', () => this.sendMessage());
         
@@ -181,20 +175,6 @@ class AIAgentChat {
         // Update placeholder text
         this.chatInput.placeholder = "Describe what you want to do with this image...";
         this.chatInput.focus();
-    }
-
-    openChat() {
-        this.chatWidget.style.display = 'flex';
-        this.chatInput.focus();
-        
-        // Scroll to bottom
-        setTimeout(() => {
-            this.scrollToBottom();
-        }, 100);
-    }
-
-    closeChat() {
-        this.chatWidget.style.display = 'none';
     }
 
     async sendMessage() {

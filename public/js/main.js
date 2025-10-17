@@ -417,9 +417,199 @@ class InventoryManager {
         document.getElementById('editPrice').value = product.price;
         // ... populate other fields
     }
+
+    // Sell Product Modal Functionality
+    setupSellProductModal() {
+        const sellModal = document.getElementById('sellProductModal');
+        const sellProductSelect = document.getElementById('sellProductSelect');
+        const sellProductDetails = document.getElementById('sellProductDetails');
+        const confirmSellBtn = document.getElementById('confirmSellBtn');
+
+        if (!sellModal || !sellProductSelect) return;
+
+        // Load products when modal opens
+        sellModal.addEventListener('show.bs.modal', async () => {
+            await this.loadProductsForSell();
+            
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sellDate').value = today;
+        });
+
+        // Handle product selection
+        sellProductSelect.addEventListener('change', (e) => {
+            const productId = e.target.value;
+            if (productId) {
+                this.selectProductForSell(productId);
+            }
+        });
+
+        // Handle sell confirmation
+        if (confirmSellBtn) {
+            confirmSellBtn.addEventListener('click', () => this.handleSellProduct());
+        }
+
+        // Clear validation on input
+        document.getElementById('sellQuantity')?.addEventListener('input', () => {
+            document.getElementById('sellQuantity').classList.remove('is-invalid');
+            document.getElementById('sellQuantityError').textContent = '';
+        });
+
+        document.getElementById('sellPrice')?.addEventListener('input', () => {
+            document.getElementById('sellPrice').classList.remove('is-invalid');
+            document.getElementById('sellPriceError').textContent = '';
+        });
+    }
+
+    async loadProductsForSell() {
+        try {
+            const result = await this.productService.loadProducts();
+            const sellProductSelect = document.getElementById('sellProductSelect');
+            
+            if (!result.success) {
+                console.error('Failed to load products:', result.message);
+                alert('Failed to load products: ' + result.message);
+                return;
+            }
+
+            const products = result.data || [];
+            
+            // Clear existing options except first
+            sellProductSelect.innerHTML = '<option value="">Choose a product...</option>';
+            
+            // Add products with available quantity - showing SKU, Name, and Qty
+            products.filter(p => p.quantity > 0).forEach(product => {
+                const option = document.createElement('option');
+                option.value = product._id;
+                const sku = product.sku || product._id.substring(0, 8);
+                option.textContent = `${sku} - ${product.name} (${product.quantity} available)`;
+                option.dataset.product = JSON.stringify(product);
+                sellProductSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading products for sell:', error);
+            alert('Failed to load products');
+        }
+    }
+
+    selectProductForSell(productId) {
+        const sellProductSelect = document.getElementById('sellProductSelect');
+        const selectedOption = sellProductSelect.querySelector(`option[value="${productId}"]`);
+        
+        if (!selectedOption) return;
+        
+        const product = JSON.parse(selectedOption.dataset.product);
+        
+        // Populate product details
+        document.getElementById('sellProductId').value = product._id;
+        document.getElementById('sellProductSku').value = product.sku || product._id;
+        document.getElementById('sellMaxQuantity').value = product.quantity;
+        document.getElementById('sellProductSkuDisplay').textContent = product.sku || product._id.substring(0, 8);
+        document.getElementById('sellAvailableQuantity').textContent = product.quantity;
+        
+        // Set sell price to list price (default)
+        document.getElementById('sellPrice').value = product.price || 0;
+        
+        // Set quantity to 1
+        document.getElementById('sellQuantity').value = 1;
+        document.getElementById('sellQuantity').max = product.quantity;
+        
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('sellDate').value = today;
+        
+        // Clear any validation errors
+        document.getElementById('sellQuantity').classList.remove('is-invalid');
+        document.getElementById('sellPrice').classList.remove('is-invalid');
+        document.getElementById('sellQuantityError').textContent = '';
+        document.getElementById('sellPriceError').textContent = '';
+    }
+
+    async handleSellProduct() {
+        try {
+            const productId = document.getElementById('sellProductId').value;
+            const sku = document.getElementById('sellProductSku').value;
+            const quantity = parseInt(document.getElementById('sellQuantity').value);
+            const sellPrice = parseFloat(document.getElementById('sellPrice').value);
+            const dateSold = document.getElementById('sellDate').value;
+            const maxQuantity = parseInt(document.getElementById('sellMaxQuantity').value);
+
+            // Clear previous validation
+            document.getElementById('sellQuantity').classList.remove('is-invalid');
+            document.getElementById('sellPrice').classList.remove('is-invalid');
+
+            // Validation
+            let hasError = false;
+
+            if (!quantity || quantity < 1 || quantity > maxQuantity) {
+                document.getElementById('sellQuantityError').textContent = `Please enter a valid quantity (1-${maxQuantity})`;
+                document.getElementById('sellQuantity').classList.add('is-invalid');
+                hasError = true;
+            }
+
+            if (!sellPrice || sellPrice <= 0) {
+                document.getElementById('sellPriceError').textContent = 'Please enter a valid sell price';
+                document.getElementById('sellPrice').classList.add('is-invalid');
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // Record the sale via API
+            const saleData = {
+                productId: productId,
+                sku: sku,
+                quantity: quantity,
+                sellPrice: sellPrice,
+                dateSold: dateSold
+            };
+
+            const response = await fetch('/api/products/sell', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(saleData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sellProductModal'));
+                modal.hide();
+
+                // Show success message
+                this.uiManager.showAlert(`Successfully sold ${quantity} units of ${sku} for $${sellPrice.toFixed(2)}`, 'success');
+
+                // Refresh profit metrics
+                await this.loadProfitData();
+
+                // Reset form
+                document.getElementById('sellProductForm').reset();
+                document.getElementById('sellProductSkuDisplay').textContent = '-';
+                document.getElementById('sellAvailableQuantity').textContent = '0';
+                
+                // Set default date again after reset
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('sellDate').value = today;
+            } else {
+                throw new Error(result.message || 'Failed to record sale');
+            }
+
+        } catch (error) {
+            console.error('Error selling product:', error);
+            this.uiManager.showAlert('Error recording sale: ' + error.message, 'danger');
+        }
+    }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.inventoryManager = new InventoryManager();
+    
+    // Setup sell product modal if it exists
+    if (document.getElementById('sellProductModal')) {
+        window.inventoryManager.setupSellProductModal();
+    }
 });
