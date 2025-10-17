@@ -118,24 +118,9 @@ class UIManager {
     }
 
     updateProfitDisplay(profitData) {
-        console.log('💰 Updating profit display with data:', profitData);
-        
-        const currentMonthElement = document.getElementById('currentMonthProfit');
-        const lastMonthElement = document.getElementById('lastMonthProfit');
-
-        if (currentMonthElement) {
-            currentMonthElement.textContent = `$${profitData.currentMonth.toFixed(2)}`;
-            console.log('✅ Updated currentMonthProfit');
-        } else {
-            console.warn('⚠️ currentMonthProfit element not found');
-        }
-        
-        if (lastMonthElement) {
-            lastMonthElement.textContent = `$${profitData.lastMonth.toFixed(2)}`;
-            console.log('✅ Updated lastMonthProfit');
-        } else {
-            console.warn('⚠️ lastMonthProfit element not found');
-        }
+        // Profit tiles have been removed from the home page
+        // This method is kept for backward compatibility but does nothing
+        console.log('💰 Profit data received (profit tiles removed from UI):', profitData);
     }
 
     formatProductType(type) {

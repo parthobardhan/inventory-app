@@ -12,7 +12,6 @@
         const heroChatInput = document.getElementById('heroChatInput');
         const heroUploadBtn = document.getElementById('heroUploadImageBtn');
         const heroVoiceBtn = document.getElementById('heroVoiceInputBtn');
-        const heroSuggestions = document.querySelectorAll('#heroChatSuggestions .ai-suggestion-chip');
         const heroChatMessages = document.getElementById('heroChatMessages');
 
         if (!heroSendBtn || !heroChatInput) return;
@@ -142,15 +141,6 @@
             heroChatInput.style.height = 'auto';
             const newHeight = Math.min(heroChatInput.scrollHeight, 120);
             heroChatInput.style.height = newHeight + 'px';
-        });
-
-        // Suggestion chips
-        heroSuggestions.forEach(chip => {
-            chip.addEventListener('click', () => {
-                const message = chip.getAttribute('data-message');
-                heroChatInput.value = message;
-                sendHeroMessage();
-            });
         });
 
         // Upload button - open main AI chat widget for image functionality
