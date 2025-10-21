@@ -43,6 +43,19 @@ const productSchema = new mongoose.Schema({
     min: [0, 'Cost cannot be negative'],
     default: 0
   },
+  // Itemized cost breakdown
+  costBreakdown: [{
+    category: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    amount: {
+      type: Number,
+      min: [0, 'Cost amount cannot be negative'],
+      required: true
+    }
+  }],
   dateSold: {
     type: Date
   },
@@ -164,6 +177,9 @@ const productSchema = new mongoose.Schema({
 
 // Update totalValue and profit before saving
 productSchema.pre('save', function(next) {
+  // Do NOT auto-calculate cost from costBreakdown - use the user-entered value
+  // Cost field will be set explicitly by the user (either manually or from breakdown sum)
+  
   this.totalValue = this.quantity * this.price;
   // Calculate profit only if item is sold
   if (this.dateSold && this.cost > 0) {

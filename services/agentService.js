@@ -28,7 +28,14 @@ CRITICAL: When the user mentions a SKU code, extract it properly:
 - User says "Add bed cover with SKU BED-001 for $50" → sku: "BED-001"  
 - User says "Add 10 towels for $15" (no SKU mentioned) → sku: undefined (will auto-generate)
 
-DO NOT put the SKU in the description field. Extract the alphanumeric code and put it in the sku parameter.`,
+DO NOT put the SKU in the description field. Extract the alphanumeric code and put it in the sku parameter.
+
+COST BREAKDOWN INSTRUCTIONS:
+When the user mentions multiple cost components, extract them into costBreakdown. Examples:
+- "Add cushion cover, material $20, embroidery $10, making charge $5" → costBreakdown: [{category: "Material", amount: 20}, {category: "Embroidery", amount: 10}, {category: "Making Charge", amount: 5}]
+- "Add bed cover with material cost $30, embroidery $15, end stitching $8, printing $12" → Extract all into costBreakdown
+- Every product must have Material and Embroidery costs at minimum
+- Additional categories based on type: cushion-covers (Making Charge), bed-covers (End Stitching, Printing), sarees (Printing)`,
       parameters: {
         type: 'object',
         properties: {
@@ -55,7 +62,26 @@ DO NOT put the SKU in the description field. Extract the alphanumeric code and p
           },
           cost: {
             type: 'number',
-            description: 'The cost price per unit in dollars (optional)',
+            description: 'The total cost price per unit in dollars (optional, will be calculated from costBreakdown if provided)',
+          },
+          costBreakdown: {
+            type: 'array',
+            description: 'Itemized cost breakdown. Required categories: Material, Embroidery. Optional based on type: Making Charge (cushion-covers), End Stitching (bed-covers), Printing (bed-covers, sarees)',
+            items: {
+              type: 'object',
+              properties: {
+                category: {
+                  type: 'string',
+                  enum: ['Material', 'Embroidery', 'Making Charge', 'End Stitching', 'Printing'],
+                  description: 'The cost category'
+                },
+                amount: {
+                  type: 'number',
+                  description: 'The cost amount in dollars'
+                }
+              },
+              required: ['category', 'amount']
+            }
           },
           description: {
             type: 'string',
@@ -454,13 +480,18 @@ async function executeTool(toolName, args) {
 async function addProduct(args) {
   const Product = require('../models/Product');
   
+  // Use the cost provided by the user (either manual entry or calculated from breakdown)
+  // Do NOT auto-calculate - respect the user's input
+  const totalCost = args.cost || 0;
+  
   const result = await productService.createProduct({
     name: args.name,
     sku: args.sku,
     type: args.type,
     quantity: args.quantity,
     price: args.price,
-    cost: args.cost,
+    cost: totalCost,
+    costBreakdown: args.costBreakdown,
     description: args.description
   });
 
@@ -491,9 +522,18 @@ async function addProduct(args) {
       }
     }
     
+    // Build cost breakdown message
+    let costMessage = '';
+    if (result.data.costBreakdown && result.data.costBreakdown.length > 0) {
+      const breakdownStr = result.data.costBreakdown
+        .map(item => `${item.category}: $${item.amount.toFixed(2)}`)
+        .join(', ');
+      costMessage = ` Cost breakdown: ${breakdownStr}. Total cost: $${result.data.cost.toFixed(2)}.`;
+    }
+    
     return {
       success: true,
-      message: `Successfully added ${args.quantity} units of "${args.name}" (SKU: ${result.data.sku}) to inventory.${args._imageData ? ' Product image has been saved.' : ''}`,
+      message: `Successfully added ${args.quantity} units of "${args.name}" (SKU: ${result.data.sku}) to inventory.${costMessage}${args._imageData ? ' Product image has been saved.' : ''}`,
       product: {
         id: result.data._id,
         name: result.data.name,
@@ -501,6 +541,8 @@ async function addProduct(args) {
         type: result.data.type,
         quantity: result.data.quantity,
         price: result.data.price,
+        cost: result.data.cost,
+        costBreakdown: result.data.costBreakdown,
         hasImage: !!args._imageData,
       },
     };

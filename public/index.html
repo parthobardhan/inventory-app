@@ -236,14 +236,50 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="modalCost" class="form-label">Cost ($)</label>
-                                    <input type="number" class="form-control" id="modalCost" name="cost" min="0" step="0.01" placeholder="0.00">
-                                    <div class="form-text">Cost to calculate profit (optional)</div>
+                        <!-- Cost Breakdown Section -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cost Breakdown</label>
+                            <div class="card">
+                                <div class="card-body">
+                                    <!-- Fixed Cost Fields -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="modalCostMaterial" class="form-label">Material ($) *</label>
+                                            <input type="number" class="form-control cost-breakdown-item" id="modalCostMaterial" data-category="Material" min="0" step="0.01" value="0" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="modalCostEmbroidery" class="form-label">Embroidery ($) *</label>
+                                            <input type="number" class="form-control cost-breakdown-item" id="modalCostEmbroidery" data-category="Embroidery" min="0" step="0.01" value="0" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Dynamic Cost Fields -->
+                                    <div id="modalAdditionalCosts">
+                                        <!-- Additional cost items will be added here -->
+                                    </div>
+                                    
+                                    <!-- Add Cost Item Button -->
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="modalAddCostItemBtn">
+                                            <i class="fas fa-plus me-1"></i>Add Cost Item
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Total Cost Input -->
+                                    <div class="mb-2">
+                                        <label for="modalTotalCost" class="form-label fw-bold">Total Cost ($)</label>
+                                        <input type="number" class="form-control" id="modalTotalCost" min="0" step="0.01" placeholder="0.00">
+                                        <div class="form-text">Auto-calculated from breakdown above. You can override by entering a different value.</div>
+                                    </div>
+                                    
+                                    <!-- Warning for mismatch -->
+                                    <div id="modalCostMismatchWarning" class="alert alert-warning alert-sm mb-0" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <small><strong>Warning:</strong> The total cost you entered (<span id="warningManualCost"></span>) doesn't match the calculated breakdown total (<span id="warningCalculatedCost"></span>). The value you entered will be saved to the database.</small>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="form-text">Break down your costs into categories. Total cost is auto-calculated but can be overridden.</div>
                         </div>
                         <div class="mb-3">
                             <label for="modalDescription" class="form-label">Description</label>
@@ -340,9 +376,12 @@
                             <input type="number" class="form-control" id="editPrice" min="0" step="0.01" required>
                         </div>
                         <div class="mb-3">
-                            <label for="editCost" class="form-label">Cost ($)</label>
-                            <input type="number" class="form-control" id="editCost" min="0" step="0.01" placeholder="0.00">
-                            <div class="form-text">Cost to calculate profit (optional)</div>
+                            <label for="editCost" class="form-label">Total Cost ($)</label>
+                            <input type="number" class="form-control" id="editCost" min="0" step="0.01" placeholder="0.00" readonly>
+                            <div class="form-text">Total cost (calculated from cost breakdown)</div>
+                        </div>
+                        <div class="mb-3" id="editCostBreakdownDisplay">
+                            <!-- Cost breakdown will be displayed here -->
                         </div>
                         <div class="mb-3">
                             <label for="editDateSold" class="form-label">Date Sold</label>
@@ -499,6 +538,7 @@
     <script src="js/modules/UIManager.js"></script>
     <script src="js/utils/ValidationManager.js"></script>
     <script src="js/utils/DataManager.js"></script>
+    <script src="js/utils/CostBreakdownManager.js"></script>
     <script src="js/ai-agent.js"></script>
     <script src="js/main.js"></script>
     
