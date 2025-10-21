@@ -29,7 +29,7 @@ function generateSKU(productName) {
  */
 async function createProduct(productData) {
   try {
-    const { name, sku, type, quantity, price, cost, description } = productData;
+    const { name, sku, type, quantity, price, cost, costBreakdown, description } = productData;
 
     // Validate required fields
     if (!name || !type || quantity === undefined || price === undefined) {
@@ -60,7 +60,7 @@ async function createProduct(productData) {
     // Generate SKU if not provided or empty
     const productSKU = (sku && sku.trim()) || generateSKU(name);
     
-    console.log('[ProductService] Creating product:', { name, sku: productSKU, type, quantity, price });
+    console.log('[ProductService] Creating product:', { name, sku: productSKU, type, quantity, price, costBreakdown });
 
     // Create product instance
     const product = new Product({
@@ -70,10 +70,11 @@ async function createProduct(productData) {
       quantity,
       price,
       cost: cost || 0,
+      costBreakdown: costBreakdown || [],
       description: description || ''
     });
 
-    // Save to database
+    // Save to database (pre-save hook will calculate total cost from costBreakdown)
     const savedProduct = await product.save();
 
     return {

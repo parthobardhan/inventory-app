@@ -1,5 +1,5 @@
 // Service Worker for Textile Inventory Manager PWA
-const CACHE_NAME = 'textile-inventory-v1.0.0';
+const CACHE_NAME = 'textile-inventory-v1.0.1';
 const OFFLINE_URL = '/offline.html';
 
 // Resources to cache immediately
@@ -100,7 +100,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - Cache First strategy
+  // JavaScript files - Network First strategy (to ensure updates are loaded)
+  if (url.pathname.endsWith('.js')) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+
+  // Static assets (CSS, images, fonts) - Cache First strategy
   if (isStaticAsset(url.pathname)) {
     event.respondWith(cacheFirstStrategy(request));
     return;

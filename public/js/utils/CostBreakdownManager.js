@@ -14,16 +14,37 @@ class CostBreakdownManager {
 
     init() {
         console.log('🧮 Initializing CostBreakdownManager...');
-        this.bindEvents();
+        // Defer event binding to ensure DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.bindEvents());
+        } else {
+            this.bindEvents();
+        }
         this.updateTotalCost();
         console.log('✅ CostBreakdownManager initialized');
     }
 
     bindEvents() {
-        // Add cost item button
+        console.log('🔗 CostBreakdownManager: Binding events...');
+        
+        // Add cost item button - use event delegation if button doesn't exist yet
         const addBtn = document.getElementById('modalAddCostItemBtn');
         if (addBtn) {
-            addBtn.addEventListener('click', () => this.addCostItem());
+            console.log('✅ Found modalAddCostItemBtn, attaching listener');
+            addBtn.addEventListener('click', () => {
+                console.log('🖱️ Add Cost Item button clicked');
+                this.addCostItem();
+            });
+        } else {
+            console.warn('⚠️ modalAddCostItemBtn not found, will use event delegation');
+            // Fallback: use event delegation on document
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'modalAddCostItemBtn' || e.target.closest('#modalAddCostItemBtn')) {
+                    console.log('🖱️ Add Cost Item button clicked (via delegation)');
+                    e.preventDefault();
+                    this.addCostItem();
+                }
+            });
         }
 
         // Listen to cost field changes
@@ -44,6 +65,8 @@ class CostBreakdownManager {
             productTypeSelect.addEventListener('change', (e) => {
                 this.updateCategorySuggestions(e.target.value);
             });
+        } else {
+            console.warn('⚠️ modalProductType not found');
         }
 
         // Clear cost breakdown when modal closes
@@ -52,15 +75,30 @@ class CostBreakdownManager {
             modal.addEventListener('hidden.bs.modal', () => {
                 this.clearCostBreakdown();
             });
+            // Recalculate when modal opens
+            modal.addEventListener('shown.bs.modal', () => {
+                console.log('🔢 Modal opened, recalculating total cost');
+                this.updateTotalCost();
+            });
+        } else {
+            console.warn('⚠️ addProductModal not found');
         }
+        
+        console.log('✅ CostBreakdownManager: Events bound');
     }
 
     addCostItem(category = '', amount = 0) {
+        console.log('➕ addCostItem called with:', { category, amount });
+        
         const container = document.getElementById('modalAdditionalCosts');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ modalAdditionalCosts container not found!');
+            return;
+        }
 
         this.costItemCounter++;
         const itemId = `costItem${this.costItemCounter}`;
+        console.log('✨ Creating new cost item with ID:', itemId);
 
         const itemHtml = `
             <div class="row mb-2 align-items-end cost-item" id="${itemId}">
@@ -97,6 +135,7 @@ class CostBreakdownManager {
         `;
 
         container.insertAdjacentHTML('beforeend', itemHtml);
+        console.log('✅ Cost item added successfully');
         this.updateTotalCost();
     }
 
@@ -131,11 +170,18 @@ class CostBreakdownManager {
             total += value;
         });
 
+        console.log('💰 Calculated total cost:', total);
+
         const totalInput = document.getElementById('modalTotalCost');
         
         // Only auto-update if user hasn't manually modified it
         if (totalInput && !this.userModifiedTotal) {
+            console.log('✍️ Updating modalTotalCost input to:', total.toFixed(2));
             totalInput.value = total.toFixed(2);
+        } else if (!totalInput) {
+            console.warn('⚠️ modalTotalCost input not found');
+        } else {
+            console.log('⏸️ Skipping auto-update (user modified total)');
         }
 
         // Check for cost mismatch after updating calculated total

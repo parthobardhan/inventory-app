@@ -430,7 +430,7 @@ router.post('/', checkDBConnection, async (req, res) => {
   });
   
   try {
-    const { name, sku, type, quantity, price, cost, description } = req.body;
+    const { name, sku, type, quantity, price, cost, costBreakdown, description } = req.body;
     
     console.warn('🔍 [PRODUCTS API] Extracted fields:', {
       name: name,
@@ -439,6 +439,7 @@ router.post('/', checkDBConnection, async (req, res) => {
       quantity: quantity,
       price: price,
       cost: cost,
+      costBreakdown: costBreakdown,
       description: description ? description.substring(0, 100) + '...' : 'none'
     });
     
@@ -453,6 +454,7 @@ router.post('/', checkDBConnection, async (req, res) => {
       quantity,
       price,
       cost,
+      costBreakdown, // Itemized cost breakdown
       description
     });
     

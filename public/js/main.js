@@ -9,6 +9,10 @@ class InventoryManager {
         this.uiManager = new UIManager();
         this.validationManager = new ValidationManager();
         this.dataManager = new DataManager(this.productService);
+        this.costBreakdownManager = new CostBreakdownManager();
+        
+        // Make cost breakdown manager globally accessible
+        window.costBreakdownManager = this.costBreakdownManager;
         
         // IndexedDB manager (if available)
         this.dbManager = null;
@@ -405,6 +409,12 @@ class InventoryManager {
             data[key] = value;
         }
         
+        // Add cost breakdown data if it's from the modal form
+        if (formId === 'modalProductForm' && this.costBreakdownManager) {
+            data.costBreakdown = this.costBreakdownManager.getCostBreakdown();
+            data.cost = this.costBreakdownManager.getTotalCost();
+        }
+        
         return data;
     }
 
@@ -415,7 +425,25 @@ class InventoryManager {
         document.getElementById('editProductType').value = product.type;
         document.getElementById('editQuantity').value = product.quantity;
         document.getElementById('editPrice').value = product.price;
-        // ... populate other fields
+        document.getElementById('editCost').value = product.cost || 0;
+        
+        // Display cost breakdown
+        const breakdownDisplay = document.getElementById('editCostBreakdownDisplay');
+        if (breakdownDisplay && product.costBreakdown && product.costBreakdown.length > 0) {
+            let html = '<label class="form-label fw-bold">Cost Breakdown</label><div class="card"><div class="card-body">';
+            product.costBreakdown.forEach(item => {
+                html += `
+                    <div class="cost-breakdown-item-display">
+                        <span class="cost-category">${item.category}</span>
+                        <span class="cost-amount">$${item.amount.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            html += '</div></div>';
+            breakdownDisplay.innerHTML = html;
+        } else if (breakdownDisplay) {
+            breakdownDisplay.innerHTML = '<p class="text-muted">No cost breakdown available</p>';
+        }
     }
 
     // Sell Product Modal Functionality

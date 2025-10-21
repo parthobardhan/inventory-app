@@ -54,6 +54,12 @@ router.post('/transcribe', async (req, res) => {
                 'towels',
                 'inventory',
                 'stock',
+                'material',
+                'embroidery',
+                'making charge',
+                'end stitching',
+                'printing',
+                'cost',
               ],
               
               // Additional options for better accuracy

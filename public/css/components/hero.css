@@ -4,7 +4,7 @@
 
 .hero-section {
     background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-    padding: 0.75rem 0 0.75rem;
+    padding: 0.75rem 0 0;
     min-height: auto;
 }
 
@@ -134,7 +134,7 @@
 
 @media (max-width: 992px) {
     .hero-section {
-        padding: 0.75rem 0 1rem;
+        padding: 0.75rem 0 0.25rem;
     }
 
     .hero-container {
@@ -179,7 +179,7 @@
 
 @media (max-width: 480px) {
     .hero-section {
-        padding: 0.5rem 0 0.625rem;
+        padding: 0.5rem 0 0.25rem;
     }
 
     .hero-chat-container {

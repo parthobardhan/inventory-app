@@ -179,3 +179,62 @@
         font-size: 1.75rem;
     }
 }
+
+/* Cost Breakdown Styles */
+.cost-breakdown-item {
+    transition: border-color 0.2s ease;
+}
+
+.cost-breakdown-item:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.cost-item {
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid #667eea;
+}
+
+.cost-item:hover {
+    background-color: #e9ecef;
+}
+
+.cost-category-select {
+    font-weight: 500;
+}
+
+#modalTotalCost {
+    font-size: 1.25rem;
+    color: #667eea;
+}
+
+#editCostBreakdownDisplay {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+}
+
+#editCostBreakdownDisplay .cost-breakdown-item-display {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#editCostBreakdownDisplay .cost-breakdown-item-display:last-child {
+    border-bottom: none;
+}
+
+#editCostBreakdownDisplay .cost-category {
+    font-weight: 500;
+    color: #495057;
+}
+
+#editCostBreakdownDisplay .cost-amount {
+    color: #667eea;
+    font-weight: 600;
+}
