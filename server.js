@@ -17,7 +17,9 @@ app.set('trust proxy', 1);
 const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
 const agentRoutes = require('./routes/agent');
-const voiceRoutes = require('./routes/voice');
+const livekitRoutes = require('./routes/livekit');
+const salesRoutes = require('./routes/sales');
+const analyticsRoutes = require('./routes/analytics');
 
 // Rate limiting
 const limiter = rateLimit({
@@ -55,7 +57,8 @@ app.use(helmet({
       scriptSrc: [
         "'self'", 
         "'unsafe-inline'",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
+        "https://unpkg.com"
       ],
       fontSrc: [
         "'self'", 
@@ -74,7 +77,9 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com",
         "https://fonts.googleapis.com",
         "https://fonts.gstatic.com",
-        "*.amazonaws.com"
+        "*.amazonaws.com",
+        "*.livekit.cloud",
+        "wss://*.livekit.cloud"
       ],
     },
   },
@@ -209,7 +214,9 @@ const initDB = async () => {
 app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/agent', agentRoutes);
-app.use('/api/voice', voiceRoutes);
+app.use('/api/livekit', livekitRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

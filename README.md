@@ -28,6 +28,13 @@ A comprehensive Progressive Web App (PWA) for managing textile inventory with of
   - Add products, record sales, view analytics with simple commands
   - Powered by GPT-4o-mini with function calling
   - Example: "Add 50 blue bed covers for $25" or "Show me this week's sales"
+- **Real-Time Voice Agent** 🎤 🆕: Speak naturally to manage your inventory
+  - Powered by LiveKit for real-time WebRTC audio streaming
+  - Natural conversation with interruption handling
+  - Low latency (2-4 seconds) voice responses
+  - All inventory tools accessible via voice
+  - Deepgram STT + OpenAI TTS for high-quality voice I/O
+  - Example: Just speak "What's my inventory summary?"
 - **Dual AI Service Support**: OpenAI GPT-4o-mini (production) and Ollama LLaVA (development)
 - **Automatic product descriptions** using advanced vision-language models
 - **Image analysis** for product categorization and description generation
@@ -151,6 +158,41 @@ The inventory app now includes an **AI Assistant** that understands natural lang
 
 📖 **For detailed setup and usage guide, see [AI_AGENT_SETUP.md](./AI_AGENT_SETUP.md)**
 
+## 🎤 Real-Time Voice Agent (New!)
+
+Talk to your inventory app naturally using real-time voice!
+
+### Quick Setup
+
+1. **Sign up for LiveKit** at [cloud.livekit.io](https://cloud.livekit.io)
+2. **Create a project** and get your credentials
+3. **Add to your `dev.env` file:**
+   ```env
+   LIVEKIT_URL=wss://your-project.livekit.cloud
+   LIVEKIT_API_KEY=your_api_key
+   LIVEKIT_API_SECRET=your_api_secret
+   DEEPGRAM_API_KEY=your_deepgram_key  # For speech-to-text
+   OPENAI_API_KEY=your_openai_key      # For TTS and LLM
+   ```
+4. **Restart the server** and click the microphone button in the AI chat!
+
+### Features
+
+- 🎙️ **Real-time conversation** with natural interruption handling
+- ⚡ **Low latency** (~2-4 seconds response time)
+- 🛠️ **All inventory tools** accessible via voice
+- 🌐 **WebRTC-based** for high-quality audio
+- 🔒 **Secure** with token-based authentication
+
+### Example Voice Commands
+
+- "What's my inventory summary?"
+- "Add 30 cushion covers for $45"
+- "Show me this month's profit"
+- "What are my top selling products?"
+
+📖 **For detailed documentation, see [LIVEKIT_INTEGRATION.md](./LIVEKIT_INTEGRATION.md)**
+
 ### 🚀 Production Deployment
 
 For production deployment with OpenAI GPT-4o-mini, see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for detailed instructions.
@@ -192,6 +234,14 @@ HUGGINGFACE_API_KEY=your_huggingface_api_key
 
 # OpenAI Configuration (for production deployment)
 OPENAI_API_KEY=your_openai_api_key_here
+
+# Voice Agent Configuration
+DEEPGRAM_API_KEY=your_deepgram_api_key_here
+
+# LiveKit Real-Time Voice (Optional - for voice agent)
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_livekit_api_key
+LIVEKIT_API_SECRET=your_livekit_api_secret
 
 # AWS S3 (Optional)
 AWS_ACCESS_KEY_ID=your_aws_access_key

@@ -47,7 +47,6 @@ const productSchema = new mongoose.Schema({
   costBreakdown: [{
     category: {
       type: String,
-      required: true,
       trim: true
     },
     amount: {
@@ -56,9 +55,6 @@ const productSchema = new mongoose.Schema({
       required: true
     }
   }],
-  dateSold: {
-    type: Date
-  },
   description: {
     type: String,
     trim: true,
@@ -151,16 +147,6 @@ const productSchema = new mongoose.Schema({
       return this.quantity * this.price;
     }
   },
-  profit: {
-    type: Number,
-    default: function() {
-      // Only calculate profit if item is sold (has dateSold)
-      if (this.dateSold && this.cost > 0) {
-        return this.price - this.cost;
-      }
-      return 0;
-    }
-  },
   dateAdded: {
     type: Date,
     default: Date.now
@@ -175,42 +161,23 @@ const productSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Update totalValue and profit before saving
+// Update totalValue before saving
 productSchema.pre('save', function(next) {
   // Do NOT auto-calculate cost from costBreakdown - use the user-entered value
   // Cost field will be set explicitly by the user (either manually or from breakdown sum)
   
   this.totalValue = this.quantity * this.price;
-  // Calculate profit only if item is sold
-  if (this.dateSold && this.cost > 0) {
-    this.profit = this.price - this.cost;
-  } else {
-    this.profit = 0;
-  }
   this.lastUpdated = new Date();
   next();
 });
 
-// Update totalValue and profit before updating
+// Update totalValue before updating
 productSchema.pre('findOneAndUpdate', function(next) {
   const update = this.getUpdate();
   if (update.quantity !== undefined || update.price !== undefined) {
     const quantity = update.quantity !== undefined ? update.quantity : this.getQuery().quantity;
     const price = update.price !== undefined ? update.price : this.getQuery().price;
     update.totalValue = quantity * price;
-  }
-  
-  // Calculate profit if cost, price, or dateSold are being updated
-  if (update.cost !== undefined || update.price !== undefined || update.dateSold !== undefined) {
-    const cost = update.cost !== undefined ? update.cost : 0;
-    const price = update.price !== undefined ? update.price : 0;
-    const dateSold = update.dateSold !== undefined ? update.dateSold : null;
-    
-    if (dateSold && cost > 0) {
-      update.profit = price - cost;
-    } else {
-      update.profit = 0;
-    }
   }
   
   update.lastUpdated = new Date();
@@ -221,6 +188,5 @@ productSchema.pre('findOneAndUpdate', function(next) {
 productSchema.index({ type: 1 });
 productSchema.index({ sku: 1 });
 productSchema.index({ name: 'text', description: 'text' });
-productSchema.index({ dateSold: 1 }); // For profit calculations
 
 module.exports = mongoose.model('Product', productSchema);

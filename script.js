@@ -496,8 +496,6 @@ class InventoryManager {
         document.getElementById('editQuantity').value = product.quantity;
         document.getElementById('editPrice').value = product.price;
         document.getElementById('editCost').value = product.cost || 0;
-        document.getElementById('editDateSold').value = product.dateSold ? 
-            new Date(product.dateSold).toISOString().split('T')[0] : '';
         document.getElementById('editDescription').value = product.description || '';
 
         // Show modal
@@ -513,8 +511,6 @@ class InventoryManager {
         const quantity = parseInt(document.getElementById('editQuantity').value);
         const price = parseFloat(document.getElementById('editPrice').value);
         const cost = parseFloat(document.getElementById('editCost').value) || 0;
-        const dateSoldValue = document.getElementById('editDateSold').value;
-        const dateSold = dateSoldValue ? new Date(dateSoldValue) : null;
         const description = document.getElementById('editDescription').value.trim();
 
         if (!name || !type || quantity < 0 || price < 0) {
@@ -534,7 +530,6 @@ class InventoryManager {
                     quantity,
                     price,
                     cost,
-                    dateSold,
                     description
                 })
             });

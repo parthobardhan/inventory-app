@@ -29,7 +29,7 @@ function generateSKU(productName) {
  */
 async function createProduct(productData) {
   try {
-    const { name, sku, type, quantity, price, cost, costBreakdown, description } = productData;
+    const { name, sku, type, quantity, price, cost, costBreakdown, description, caption } = productData;
 
     // Validate required fields
     if (!name || !type || quantity === undefined || price === undefined) {
@@ -60,7 +60,7 @@ async function createProduct(productData) {
     // Generate SKU if not provided or empty
     const productSKU = (sku && sku.trim()) || generateSKU(name);
     
-    console.log('[ProductService] Creating product:', { name, sku: productSKU, type, quantity, price, costBreakdown });
+    console.log('[ProductService] Creating product:', { name, sku: productSKU, type, quantity, price, costBreakdown, caption });
 
     // Create product instance
     const product = new Product({
@@ -71,7 +71,8 @@ async function createProduct(productData) {
       price,
       cost: cost || 0,
       costBreakdown: costBreakdown || [],
-      description: description || ''
+      description: description || '',
+      caption: caption || ''
     });
 
     // Save to database (pre-save hook will calculate total cost from costBreakdown)
@@ -310,7 +311,7 @@ async function updateProduct(productId, updateData) {
     }
     
     // Update allowed fields
-    const allowedFields = ['name', 'sku', 'type', 'quantity', 'price', 'cost', 'description'];
+    const allowedFields = ['name', 'sku', 'type', 'quantity', 'price', 'cost', 'costBreakdown', 'description', 'caption'];
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {
         product[field] = updateData[field];

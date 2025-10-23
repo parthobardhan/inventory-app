@@ -6,7 +6,7 @@ const { getSignedUrl } = require('../config/aws');
 const mongoose = require('mongoose');
 const { upload, deleteFromS3 } = require('../config/aws');
 const { generateProductDescription } = require('../services/aiService');
-const { createProduct } = require('../services/productService');
+const { createProduct, getAllProducts } = require('../services/productService');
 const { v4: uuidv4 } = require('uuid');
 
 // Middleware to check database connection
@@ -80,51 +80,26 @@ router.get('/', checkDBConnection, async (req, res) => {
   console.warn('🌍 [PRODUCTS API] Environment:', process.env.NODE_ENV);
   
   try {
-    const { search, type, sortBy = 'dateAdded', sortOrder = 'desc' } = req.query;
+    const { search, type, sortBy = 'dateAdded', sortOrder = 'desc', lowStock } = req.query;
     
-    let pipeline = [];
+    // Use the productService which has regex-based search that includes SKU
+    const result = await getAllProducts({
+      search,
+      type,
+      sortBy,
+      sortOrder,
+      lowStock: lowStock === 'true'
+    });
     
-    // Add Atlas Search stage if search term provided
-    if (search) {
-      const searchStage = {
-        $search: {
-          index: 'default', // You may need to create this search index in Atlas
-          compound: {
-            must: [{
-              text: {
-                query: search,
-                path: ['name', 'description']
-              }
-            }]
-          }
-        }
-      };
-      
-      // Add type filter as equals operator if provided
-      if (type) {
-        searchStage.$search.compound.filter = [{
-          equals: {
-            path: 'type',
-            value: type
-          }
-        }];
-      }
-      
-      pipeline.push(searchStage);
+    if (!result.success) {
+      console.warn('❌ [PRODUCTS API] Failed to fetch products:', result.error);
+      return res.status(500).json({
+        success: false,
+        message: result.error
+      });
     }
     
-    // Add sort stage
-    const sortObj = {};
-    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
-    pipeline.push({ $sort: sortObj });
-    
-    console.warn('💾 [PRODUCTS API] Executing database query...');
-    
-    // Execute aggregation pipeline or regular find based on whether search is used
-    const products = search ?
-      await Product.aggregate(pipeline) :
-      await Product.find(type ? { type } : {}).sort(sortObj);
-    
+    const products = result.data || [];
     console.warn('✅ [PRODUCTS API] Database query completed, found', products.length, 'products');
 
     // Refresh signed URLs for all products with images

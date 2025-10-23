@@ -15,7 +15,6 @@ class DataManager {
                 price: product.price,
                 cost: product.cost || 0,
                 description: product.description || '',
-                dateSold: product.dateSold || null,
                 createdAt: product.createdAt,
                 updatedAt: product.updatedAt
             }))
@@ -77,8 +76,7 @@ class DataManager {
                     quantity: parseInt(product.quantity),
                     price: parseFloat(product.price),
                     cost: product.cost ? parseFloat(product.cost) : 0,
-                    description: product.description ? product.description.toString().trim() : '',
-                    dateSold: product.dateSold || null
+                    description: product.description ? product.description.toString().trim() : ''
                 };
 
                 // Validate numeric fields
