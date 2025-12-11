@@ -535,29 +535,8 @@
     <script src="js/utils/DataManager.js"></script>
     <script src="js/utils/CostBreakdownManager.js"></script>
     
-    <!-- LiveKit Client SDK for real-time voice (served locally) -->
-    <script src="/vendor/livekit-client.umd.js"></script>
-    <script>
-        // Debug: Check what LiveKit exports
-        console.log('🎙️ LiveKit library check:', {
-            LivekitClient: typeof LivekitClient !== 'undefined',
-            LiveKit: typeof LiveKit !== 'undefined',
-            windowLivekitClient: typeof window.LivekitClient !== 'undefined',
-            windowLiveKit: typeof window.LiveKit !== 'undefined'
-        });
-        
-        // If LiveKit is available but not LivekitClient, create alias
-        if (typeof LiveKit !== 'undefined' && typeof LivekitClient === 'undefined') {
-            window.LivekitClient = LiveKit;
-            console.log('✅ Created LivekitClient alias from LiveKit');
-        } else if (typeof LivekitClient !== 'undefined') {
-            console.log('✅ LiveKit client library loaded successfully');
-        } else {
-            console.error('❌ LiveKit client library failed to load. Voice features will be disabled.');
-            console.log('💡 Tip: Check your internet connection or firewall settings.');
-        }
-    </script>
-    <script src="js/livekit-voice.js"></script>
+    <!-- Voice Client for real-time STT (Direct Deepgram) -->
+    <script src="js/voice-client.js"></script>
     
     <script src="js/ai-agent.js"></script>
     <script src="js/main.js"></script>

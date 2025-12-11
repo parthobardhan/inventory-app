@@ -7,21 +7,10 @@ class AIAgentChat {
         this.initializeElements();
         this.attachEventListeners();
         
-        // Voice recording state (legacy transcription)
-        this.isRecording = false;
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        this.audioContext = null;
-        this.analyser = null;
-        this.silenceStart = null;
-        this.SILENCE_THRESHOLD = 0.01;
-        this.SILENCE_DURATION = 1500; // 1.5 seconds
-        this.MAX_RECORDING_TIME = 30000; // 30 seconds
-        
-        // LiveKit voice state
-        this.livekitVoice = null;
-        this.isLiveKitConnected = false;
-        this.initLiveKitVoice();
+        // Voice client state (Direct Deepgram - no LiveKit)
+        this.voiceClient = null;
+        this.isVoiceActive = false;
+        this.initVoiceClient();
     }
 
     initializeElements() {
@@ -92,22 +81,29 @@ class AIAgentChat {
             this.clearImage();
         });
 
-        // Voice input - Use LiveKit if available, fallback to legacy recording
+        // Voice input - Direct Deepgram streaming (instant toggle)
         this.voiceInputBtn?.addEventListener('click', async () => {
-            if (this.livekitVoice && this.livekitVoice.isAvailable()) {
-                // Use LiveKit real-time voice
-                if (this.isLiveKitConnected) {
-                    await this.disconnectLiveKitVoice();
+            if (this.voiceClient) {
+                if (this.voiceClient.isReady()) {
+                    // Instant toggle - already pre-connected
+                    const isActive = this.voiceClient.toggle();
+                    this.isVoiceActive = isActive;
+                    
+                    if (isActive) {
+                        this.voiceInputBtn.classList.add('recording');
+                        this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                        this.voiceInputBtn.title = 'Stop listening';
+                    } else {
+                        this.voiceInputBtn.classList.remove('recording');
+                        this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                        this.voiceInputBtn.title = 'Voice input';
+                    }
                 } else {
-                    await this.connectLiveKitVoice();
+                    // Not ready yet, do full connect
+                    await this.connectVoice();
                 }
             } else {
-                // Fallback to legacy transcription
-                if (this.isRecording) {
-                    this.stopRecording();
-                } else {
-                    this.startRecording();
-                }
+                this.setStatus('❌ Voice service not available', 'error');
             }
         });
 
@@ -673,112 +669,136 @@ class AIAgentChat {
         }
     }
 
-    // ==================== LiveKit Voice Methods ====================
+    // ==================== Voice Methods (Direct Deepgram) ====================
     
-    initLiveKitVoice() {
-        // Check if LiveKitVoiceManager is available
-        if (typeof LiveKitVoiceManager !== 'undefined') {
-            this.livekitVoice = new LiveKitVoiceManager();
+    initVoiceClient() {
+        // Check if VoiceClient is available
+        if (typeof VoiceClient !== 'undefined') {
+            this.voiceClient = new VoiceClient();
             
             // Set up callbacks
-            this.livekitVoice.onStatusChange((status, message) => {
-                this.handleLiveKitStatus(status, message);
+            this.voiceClient.onStatusChange = (status, message) => {
+                this.handleVoiceStatus(status, message);
+            };
+            
+            this.voiceClient.onTranscript = (text, isFinal, speechFinal) => {
+                this.handleVoiceTranscript(text, isFinal, speechFinal);
+            };
+            
+            this.voiceClient.onResponse = (text, toolsUsed) => {
+                this.handleVoiceResponse(text, toolsUsed);
+            };
+            
+            this.voiceClient.onError = (message) => {
+                this.setStatus(`❌ ${message}`, 'error');
+            };
+            
+            // Pre-connect for instant activation
+            this.voiceClient.preConnect().then(() => {
+                console.log('✅ Voice pre-connected (ready for instant activation)');
+                this.voiceInputBtn?.classList.add('ready');
+            }).catch(err => {
+                console.warn('⚠️ Voice pre-connect failed:', err);
             });
             
-            this.livekitVoice.onMessage((type, content) => {
-                this.handleLiveKitMessage(type, content);
-            });
-            
-            console.log('✅ LiveKit Voice initialized');
+            console.log('✅ Voice Client initialized');
         } else {
-            console.warn('⚠️ LiveKit Voice not available, will use legacy voice recording');
+            console.warn('⚠️ VoiceClient not available');
         }
     }
     
-    async connectLiveKitVoice() {
+    async connectVoice() {
         try {
             this.voiceInputBtn.classList.add('connecting');
-            this.voiceInputBtn.title = 'Connecting to voice...';
-            this.setStatus('🔄 Connecting to voice session...', 'connecting');
-            this.sendBtn.disabled = true;
-            this.uploadImageBtn.disabled = true;
+            this.voiceInputBtn.title = 'Connecting...';
+            this.setStatus('🔄 Connecting to voice...', 'connecting');
             
-            await this.livekitVoice.connect();
+            await this.voiceClient.connect();
             
-            this.isLiveKitConnected = true;
+            this.isVoiceActive = true;
             this.voiceInputBtn.classList.remove('connecting');
-            this.voiceInputBtn.classList.add('connected');
-            this.voiceInputBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
-            this.voiceInputBtn.title = 'Disconnect voice';
+            this.voiceInputBtn.classList.add('recording');
+            this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            this.voiceInputBtn.title = 'Stop listening';
             
-            console.log('✅ LiveKit voice connected');
+            console.log('✅ Voice connected and active');
             
         } catch (error) {
-            console.error('❌ Failed to connect LiveKit voice:', error);
+            console.error('❌ Failed to connect voice:', error);
             this.setStatus('❌ Failed to connect: ' + error.message, 'error');
-            this.voiceInputBtn.classList.remove('connecting', 'connected');
-            this.sendBtn.disabled = false;
-            this.uploadImageBtn.disabled = false;
+            this.voiceInputBtn.classList.remove('connecting', 'recording');
         }
     }
     
-    async disconnectLiveKitVoice() {
-        try {
-            this.voiceInputBtn.classList.add('disconnecting');
-            this.setStatus('Disconnecting...', 'disconnecting');
-            
-            await this.livekitVoice.disconnect();
-            
-            this.isLiveKitConnected = false;
-            this.voiceInputBtn.classList.remove('disconnecting', 'connected');
-            this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            this.voiceInputBtn.title = 'Voice input';
-            this.sendBtn.disabled = false;
-            this.uploadImageBtn.disabled = false;
-            this.setStatus('', '');
-            
-            console.log('✅ LiveKit voice disconnected');
-            
-        } catch (error) {
-            console.error('❌ Failed to disconnect LiveKit voice:', error);
-            this.setStatus('Error disconnecting', 'error');
+    disconnectVoice() {
+        if (this.voiceClient) {
+            this.voiceClient.disconnect();
         }
+        
+        this.isVoiceActive = false;
+        this.voiceInputBtn?.classList.remove('recording', 'connecting');
+        this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        this.voiceInputBtn.title = 'Voice input';
+        this.setStatus('', '');
+        
+        console.log('✅ Voice disconnected');
     }
     
-    handleLiveKitStatus(status, message) {
+    handleVoiceStatus(status, message) {
         const statusMap = {
-            'connecting': { emoji: '🔄', cssClass: 'connecting', displayMessage: message },
-            'connected': { emoji: '✅', cssClass: 'success', displayMessage: message },
-            'listening': { emoji: '🎤', cssClass: 'listening', displayMessage: message },
-            'agent_speaking': { emoji: '🔊', cssClass: 'speaking', displayMessage: message },
-            'processing': { emoji: '⏳', cssClass: 'processing', displayMessage: message },
-            'ready': { emoji: '✅', cssClass: 'ready', displayMessage: message },
-            'error': { emoji: '❌', cssClass: 'error', displayMessage: message },
-            'disconnected': { emoji: '🔌', cssClass: 'info', displayMessage: message },
-            'reconnecting': { emoji: '🔄', cssClass: 'warning', displayMessage: message },
-            'muted': { emoji: '🔇', cssClass: 'muted', displayMessage: message },
+            'connecting': { emoji: '🔄', cssClass: 'connecting' },
+            'connected': { emoji: '✅', cssClass: 'success' },
+            'ready': { emoji: '✅', cssClass: 'ready' },
+            'listening': { emoji: '🎤', cssClass: 'listening' },
+            'processing': { emoji: '⏳', cssClass: 'processing' },
+            'error': { emoji: '❌', cssClass: 'error' },
+            'disconnected': { emoji: '🔌', cssClass: 'info' },
+            'muted': { emoji: '🔇', cssClass: 'muted' },
         };
         
-        const statusInfo = statusMap[status] || { emoji: 'ℹ️', cssClass: 'info', displayMessage: message };
-        this.setStatus(`${statusInfo.emoji} ${statusInfo.displayMessage}`, statusInfo.cssClass);
+        const info = statusMap[status] || { emoji: 'ℹ️', cssClass: 'info' };
+        this.setStatus(`${info.emoji} ${message}`, info.cssClass);
     }
     
-    handleLiveKitMessage(type, content) {
-        if (type === 'user') {
-            // User's transcribed speech
-            this.addUserMessage(content);
-        } else if (type === 'assistant') {
-            // Agent's response
-            this.addAIMessage(content);
-            
-            // Update conversation history
-            this.conversationHistory.push(
-                { role: 'assistant', content: content }
-            );
-        } else if (type === 'system') {
-            // System message
-            console.log('📢 System:', content);
+    handleVoiceTranscript(text, isFinal, speechFinal) {
+        if (!text || text.trim() === '') return;
+        
+        console.log('📝 [Voice] Transcript:', { text, isFinal, speechFinal });
+        
+        // Update input box with live transcript
+        this.chatInput.value = text;
+        
+        // Style based on state
+        if (isFinal) {
+            this.chatInput.classList.remove('transcript-interim');
+            this.chatInput.classList.add('transcript-ready');
+            setTimeout(() => this.chatInput.classList.remove('transcript-ready'), 1000);
+        } else {
+            this.chatInput.classList.add('transcript-interim');
         }
+        
+        // Auto-resize
+        this.chatInput.style.height = 'auto';
+        this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 160) + 'px';
+    }
+    
+    handleVoiceResponse(text, toolsUsed) {
+        console.log('🤖 [Voice] Response:', text);
+        
+        // Add to chat
+        this.addAIMessage(text);
+        
+        // Update conversation history
+        this.conversationHistory.push({ role: 'assistant', content: text });
+        
+        // Keep history manageable
+        if (this.conversationHistory.length > 20) {
+            this.conversationHistory = this.conversationHistory.slice(-20);
+        }
+        
+        // Clear input after response
+        this.chatInput.value = '';
+        this.chatInput.classList.remove('transcript-interim', 'transcript-ready');
     }
 }
 
