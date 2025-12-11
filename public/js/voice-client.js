@@ -14,6 +14,7 @@ class VoiceClient {
         this.isConnecting = false;
         this.isMuted = true;
         this.isStreaming = false;
+        this.deepgramInfo = null;
         
         // Callbacks
         this.onTranscript = null;      // (text, isFinal) => {}
@@ -57,14 +58,18 @@ class VoiceClient {
             });
             console.log('✅ [Voice] Microphone access granted');
 
+            // Fetch Deepgram connection info (url + token)
+            this.deepgramInfo = await this._fetchDeepgramInfo();
+            if (!this.deepgramInfo) {
+                throw new Error('Failed to obtain Deepgram token');
+            }
+
             // Prepare audio context + processor for 16k PCM
             this._setupAudioPipeline();
 
-            // Connect WebSocket
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/api/voice/stream`;
-            
-            this.ws = new WebSocket(wsUrl);
+            // Connect WebSocket directly to Deepgram
+            const protocols = this.deepgramInfo.token ? ['token', this.deepgramInfo.token] : undefined;
+            this.ws = new WebSocket(this.deepgramInfo.url, protocols);
 
             this.ws.onopen = () => {
                 console.log('✅ [Voice] WebSocket connected');
@@ -74,7 +79,12 @@ class VoiceClient {
             };
 
             this.ws.onmessage = (event) => {
-                this._handleMessage(JSON.parse(event.data));
+                try {
+                    const parsed = JSON.parse(event.data);
+                    this._handleMessage(parsed);
+                } catch (err) {
+                    console.warn('⚠️ [Voice] Non-JSON message from Deepgram', err);
+                }
             };
 
             this.ws.onerror = (error) => {
@@ -135,8 +145,8 @@ class VoiceClient {
             const pcm16 = this._downsampleTo16k(inputData, inputBuffer.sampleRate);
 
             if (pcm16 && pcm16.length > 0) {
-                const base64Audio = this._bufferToBase64(pcm16.buffer);
-                this.ws.send(JSON.stringify({ type: 'audio', audio: base64Audio }));
+                // Send raw PCM bytes directly to Deepgram
+                this.ws.send(pcm16.buffer);
             }
         };
 
@@ -163,11 +173,6 @@ class VoiceClient {
             this.audioContext.resume();
         }
 
-        // Start streaming
-        if (this.ws?.readyState === WebSocket.OPEN && !this.isStreaming) {
-            this.ws.send(JSON.stringify({ type: 'start' }));
-        }
-
         this.isStreaming = true;
         this.isMuted = false;
         this._updateStatus('listening', '🎤 Listening...');
@@ -184,9 +189,6 @@ class VoiceClient {
      */
     deactivate() {
         this.isMuted = true;
-        if (this.isStreaming && this.ws?.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({ type: 'stop' }));
-        }
         this.isStreaming = false;
         this._updateStatus('muted', '🔇 Muted');
         console.log('✅ [Voice] Deactivated (muted)');
@@ -267,38 +269,30 @@ class VoiceClient {
     }
 
     /**
-     * Handle incoming messages from server
+     * Handle incoming messages from Deepgram
      */
     _handleMessage(data) {
-        switch (data.type) {
-            case 'transcript':
-                console.log(`📝 [Voice] ${data.is_final ? 'FINAL' : 'INTERIM'}: ${data.text}`);
-                if (this.onTranscript) {
-                    this.onTranscript(data.text, data.is_final, data.speech_final);
-                }
-                break;
+        // Transcript event
+        if (data.channel?.alternatives?.length) {
+            const transcript = data.channel.alternatives[0].transcript || '';
+            const isFinal = data.is_final;
+            const speechFinal = data.speech_final;
 
-            case 'response':
-                console.log('🤖 [Voice] Response:', data.text);
-                if (this.onResponse) {
-                    this.onResponse(data.text, data.toolsUsed);
-                }
-                break;
-
-            case 'status':
-                this._updateStatus(data.status, data.message);
-                break;
-
-            case 'error':
-                console.error('❌ [Voice] Error:', data.message);
-                if (this.onError) {
-                    this.onError(data.message);
-                }
-                break;
-
-            default:
-                console.log('📨 [Voice] Unknown message:', data);
+            if (transcript && this.onTranscript) {
+                this.onTranscript(transcript, isFinal, speechFinal);
+            }
+            return;
         }
+
+        if (data.type === 'error') {
+            console.error('❌ [Voice] Error:', data.message);
+            if (this.onError) {
+                this.onError(data.message);
+            }
+            return;
+        }
+
+        console.log('📨 [Voice] Message:', data);
     }
 
     /**
@@ -323,6 +317,24 @@ class VoiceClient {
      */
     isMicMuted() {
         return this.isMuted;
+    }
+
+    async _fetchDeepgramInfo() {
+        try {
+            const res = await fetch('/api/voice/token');
+            if (!res.ok) {
+                throw new Error('Token request failed');
+            }
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Token request failed');
+            }
+            return data;
+        } catch (err) {
+            console.error('❌ [Voice] Failed to fetch Deepgram token:', err);
+            this._updateStatus('error', 'Failed to fetch voice token');
+            return null;
+        }
     }
 
     /**
@@ -354,15 +366,6 @@ class VoiceClient {
         return output;
     }
 
-    _bufferToBase64(buffer) {
-        let binary = '';
-        const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return window.btoa(binary);
-    }
 }
 
 // Export for use in other scripts

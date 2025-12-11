@@ -4,10 +4,14 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const expressWs = require('express-ws');
 require('dotenv').config({ path: './dev.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Enable WebSocket support
+expressWs(app);
 
 // Trust proxy for Vercel/reverse proxy deployments
 // Use specific hop count for Vercel's proxy setup
@@ -17,9 +21,13 @@ app.set('trust proxy', 1);
 const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
 const agentRoutes = require('./routes/agent');
-const livekitRoutes = require('./routes/livekit');
+const voiceRoutes = require('./routes/voice');
 const salesRoutes = require('./routes/sales');
 const analyticsRoutes = require('./routes/analytics');
+const { createClient } = require('@deepgram/sdk');
+
+// Initialize voice WebSocket handler
+voiceRoutes.initializeWebSocket(app);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -78,8 +86,8 @@ app.use(helmet({
         "https://fonts.googleapis.com",
         "https://fonts.gstatic.com",
         "*.amazonaws.com",
-        "*.livekit.cloud",
-        "wss://*.livekit.cloud"
+        "wss:",
+        "ws:"
       ],
     },
   },
@@ -214,9 +222,49 @@ const initDB = async () => {
 app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/agent', agentRoutes);
-app.use('/api/livekit', livekitRoutes);
+app.use('/api/voice', voiceRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/analytics', analyticsRoutes);
+
+// Deepgram client for tokenized browser connections
+const dgClient = process.env.DEEPGRAM_API_KEY ? createClient(process.env.DEEPGRAM_API_KEY) : null;
+
+// Issue scoped Deepgram token and listen URL for browser direct connections
+app.get('/api/voice/token', async (req, res) => {
+  try {
+    if (!dgClient) {
+      return res.status(500).json({ success: false, error: 'Deepgram not configured' });
+    }
+
+    // For simplicity, reuse the configured key as the token. In production, prefer creating
+    // short-lived scoped keys via Deepgram's key management API.
+    const token = process.env.DEEPGRAM_API_KEY;
+
+    const query = new URLSearchParams({
+      model: 'nova-2',
+      language: 'en',
+      smart_format: 'true',
+      interim_results: 'true',
+      endpointing: '300',
+      utterance_end_ms: '1000',
+      vad_events: 'true',
+      encoding: 'linear16',
+      sample_rate: '16000',
+      channels: '1',
+    }).toString();
+
+    const url = `wss://api.deepgram.com/v1/listen?${query}`;
+
+    res.json({
+      success: true,
+      url,
+      token,
+    });
+  } catch (error) {
+    console.error('Error issuing Deepgram token:', error);
+    res.status(500).json({ success: false, error: 'Failed to issue Deepgram token' });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
