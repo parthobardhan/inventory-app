@@ -4,6 +4,9 @@ class AIAgentChat {
         this.conversationHistory = [];
         this.isProcessing = false;
         this.selectedImage = null;
+        // Voice auto-stop timers
+        this.autoStopTimer = null;
+        this.hardStopTimer = null;
         this.initializeElements();
         this.attachEventListeners();
         
@@ -723,6 +726,13 @@ class AIAgentChat {
             
             console.log('✅ Voice connected and active');
             
+            // Hard stop safety (60s)
+            this._clearVoiceTimers();
+            this.hardStopTimer = setTimeout(() => {
+                console.log('⏱️ Hard stop: auto-turning off mic after 60s');
+                this.disconnectVoice();
+            }, 60000);
+            
         } catch (error) {
             console.error('❌ Failed to connect voice:', error);
             this.setStatus('❌ Failed to connect: ' + error.message, 'error');
@@ -740,6 +750,7 @@ class AIAgentChat {
         this.voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         this.voiceInputBtn.title = 'Voice input';
         this.setStatus('', '');
+        this._clearVoiceTimers();
         
         console.log('✅ Voice disconnected');
     }
@@ -773,8 +784,12 @@ class AIAgentChat {
             this.chatInput.classList.remove('transcript-interim');
             this.chatInput.classList.add('transcript-ready');
             setTimeout(() => this.chatInput.classList.remove('transcript-ready'), 1000);
+            // schedule auto-stop shortly after final transcript
+            this._scheduleAutoStop();
         } else {
             this.chatInput.classList.add('transcript-interim');
+            // reset auto-stop when interim resumes
+            this._clearAutoStopOnly();
         }
         
         // Auto-resize
@@ -799,6 +814,30 @@ class AIAgentChat {
         // Clear input after response
         this.chatInput.value = '';
         this.chatInput.classList.remove('transcript-interim', 'transcript-ready');
+        this._clearVoiceTimers();
+    }
+
+    _scheduleAutoStop() {
+        this._clearAutoStopOnly();
+        this.autoStopTimer = setTimeout(() => {
+            console.log('⏱️ Auto stop after final transcript');
+            this.disconnectVoice();
+        }, 2000); // 2s grace after final speech
+    }
+
+    _clearAutoStopOnly() {
+        if (this.autoStopTimer) {
+            clearTimeout(this.autoStopTimer);
+            this.autoStopTimer = null;
+        }
+    }
+
+    _clearVoiceTimers() {
+        this._clearAutoStopOnly();
+        if (this.hardStopTimer) {
+            clearTimeout(this.hardStopTimer);
+            this.hardStopTimer = null;
+        }
     }
 }
 

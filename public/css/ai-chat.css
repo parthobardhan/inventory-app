@@ -554,6 +554,210 @@
     font-style: normal;
 }
 
+/* LiveKit Voice Input States */
+.ai-voice-btn.connected {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    animation: voicePulse 2s ease-in-out infinite;
+}
+
+.ai-voice-btn.connecting {
+    background: #ffc107;
+    color: white;
+}
+
+.ai-voice-btn.connecting i {
+    animation: spin 1s linear infinite;
+}
+
+.ai-voice-btn.disconnecting {
+    background: #6c757d;
+    color: white;
+    opacity: 0.7;
+}
+
+/* Transcript Input States */
+.hero-chat-input.transcript-interim,
+.ai-chat-input.transcript-interim {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+    animation: transcriptPulse 1.5s ease-in-out infinite;
+}
+
+.hero-chat-input.transcript-ready,
+.ai-chat-input.transcript-ready {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.05);
+    animation: transcriptReady 0.5s ease;
+}
+
+@keyframes transcriptPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(102, 126, 234, 0);
+    }
+}
+
+@keyframes transcriptReady {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Status Message Styles */
+.ai-chat-status.listening {
+    color: #667eea;
+    font-style: italic;
+}
+
+.ai-chat-status.transcribing {
+    color: #667eea;
+    font-weight: 500;
+}
+
+.ai-chat-status.processing {
+    color: #ffc107;
+}
+
+.ai-chat-status.speaking {
+    color: #f5576c;
+    font-weight: 500;
+}
+
+.ai-chat-status.success {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.ai-chat-status.connecting {
+    color: #ffc107;
+}
+
+.ai-chat-status.reconnecting {
+    color: #ff9800;
+}
+
+.ai-chat-status.warning {
+    color: #ff9800;
+}
+
+.ai-chat-status.muted {
+    color: #6c757d;
+}
+
+.ai-chat-status.info {
+    color: #17a2b8;
+}
+
+.ai-chat-status.ready {
+    color: #28a745;
+}
+
+/* Live Transcript Display */
+.ai-chat-transcript {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.transcript-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.transcript-header i {
+    color: #667eea;
+    font-size: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.transcript-label {
+    color: #667eea;
+    flex: 1;
+}
+
+.transcript-status {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+
+.transcript-content {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 40px;
+}
+
+.transcript-text {
+    margin: 0;
+    color: #333;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.transcript-text.interim {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.transcript-text.final {
+    color: #333;
+    font-weight: 500;
+}
+
+/* Transcript ready state for input */
+.hero-chat-input.transcript-ready,
+.ai-chat-input.transcript-ready {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.hero-chat-input.transcript-interim,
+.ai-chat-input.transcript-interim {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .ai-image-preview-container img {
@@ -578,6 +782,14 @@
     .ai-chat-input {
         min-height: 60px;
         font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .ai-chat-transcript {
+        padding: 10px;
+    }
+    
+    .transcript-text {
+        font-size: 0.85rem;
     }
 }
 

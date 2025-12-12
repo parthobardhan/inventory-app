@@ -1,7 +1,6 @@
-livekit-agents>=1.2.0
-livekit-plugins-deepgram>=1.2.0
-livekit-plugins-openai>=1.2.0
-livekit-plugins-silero>=1.2.0
-aiohttp>=3.9.0
+# Python dependencies (for testing only)
+# The voice agent now runs in Node.js, not Python
+
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+aiohttp>=3.9.0

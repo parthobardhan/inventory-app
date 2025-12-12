@@ -85,12 +85,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip external CDN resources - let them pass through normally
+  // Skip external CDN resources and LiveKit - let them pass through normally
   if (url.hostname === 'cdn.jsdelivr.net' || 
       url.hostname === 'cdnjs.cloudflare.com' || 
       url.hostname === 'fonts.googleapis.com' || 
       url.hostname === 'fonts.gstatic.com' ||
-      url.hostname.includes('amazonaws.com')) {
+      url.hostname.includes('amazonaws.com') ||
+      url.hostname.includes('livekit.cloud')) {
     return; // Let the browser handle these directly
   }
 
